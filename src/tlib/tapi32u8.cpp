@@ -1,10 +1,10 @@
-static char *tap32u8_id = 
-	"@(#)Copyright (C) 1996-2010 H.Shirouzu		tap32u8.cpp	Ver0.99";
+ï»¿static char *tap32u8_id = 
+	"@(#)Copyright (C) 1996-2012 H.Shirouzu		tap32u8.cpp	Ver0.99";
 /* ========================================================================
 	Project  Name			: Win32 Lightweight  Class Library Test
 	Module Name				: Application Frame Class
 	Create					: 1996-06-01(Sat)
-	Update					: 2010-05-09(Sun)
+	Update					: 2012-04-02(Mon)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -96,6 +96,30 @@ BOOL FindNextFileU8(HANDLE hDir, WIN32_FIND_DATA_U8 *fdat)
 	}
 
 	return	ret;
+}
+
+BOOL GetFileInfomationU8(const char *path, WIN32_FIND_DATA_U8 *fdata)
+{
+	HANDLE	fh;
+
+	if ((fh = FindFirstFileU8(path, fdata)) != INVALID_HANDLE_VALUE)
+	{
+		::FindClose(fh);
+		return	TRUE;
+	}
+
+	if ((fh = CreateFileU8(path, GENERIC_WRITE, FILE_SHARE_READ, 0, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, 0)) != INVALID_HANDLE_VALUE)
+	{
+		BY_HANDLE_FILE_INFORMATION	info;
+		BOOL	info_ret = ::GetFileInformationByHandle(fh, &info);
+		::CloseHandle(fh);
+		if (info_ret) {
+			memcpy(fdata, &info, (char *)&info.dwVolumeSerialNumber - (char *)&info);
+			return	TRUE;
+		}
+	}
+
+	return	(fdata->dwFileAttributes = GetFileAttributesU8(path)) == 0xffffffff ? FALSE : TRUE;
 }
 
 HANDLE CreateFileU8(const char *path, DWORD access_flg, DWORD share_flg, SECURITY_ATTRIBUTES *sa,
@@ -219,7 +243,7 @@ BOOL GetOpenFileNameU8Core(LPOPENFILENAME ofn, BOOL (WINAPI *ofn_func)(OPENFILEN
 
 	WCHAR *wp=filter_w.Buf();
 	for (const char *p=ofn->lpstrFilter; p && *p; p+=strlen(p)+1) {
-		wp += U8toW(p, wp, MAX_PATH);
+		wp += U8toW(p, wp, (int)(MAX_PATH - (wp - filter_w.Buf())));
 	}
 	*wp = 0;
 	U8toW(ofn->lpstrCustomFilter, cfilter_w.Buf(), ofn->nMaxCustFilter);
@@ -241,19 +265,19 @@ BOOL GetOpenFileNameU8Core(LPOPENFILENAME ofn, BOOL (WINAPI *ofn_func)(OPENFILEN
 
 	BOOL	ret = ofn_func(&ofn_w);
 
-	if (ofn->lpstrCustomFilter)	WtoU8(cfilter_w, ofn->lpstrCustomFilter, MAX_PATH_U8);
-	if (ofn->lpstrFileTitle)	WtoU8(ftitle_w, ofn->lpstrFileTitle, MAX_PATH_U8);
+	if (ofn->lpstrCustomFilter)	WtoU8(cfilter_w, ofn->lpstrCustomFilter, ofn->nMaxCustFilter);
+	if (ofn->lpstrFileTitle)	WtoU8(ftitle_w, ofn->lpstrFileTitle, ofn->nMaxFileTitle);
 	if (ofn->lpstrFile) {
 		if (ofn_w.Flags & OFN_ALLOWMULTISELECT) {
 			const WCHAR *wp=file_w;
 			char *p;
 			for (p=ofn->lpstrFile; wp && *wp; wp+=wcslen(wp)+1) {
-				p += WtoU8(wp, p, MAX_PATH_U8);
+				p += WtoU8(wp, p, (int)(ofn->nMaxFile - (p - ofn->lpstrFile)));
 			}
 			*p = 0;
 		}
 		else {
-			WtoU8(file_w, ofn->lpstrFile, MAX_PATH_U8);
+			WtoU8(file_w, ofn->lpstrFile, ofn->nMaxFile);
 		}
 	}
 //	if (ofn_w.lpstrFile[ofn_w.nFileOffset])
@@ -274,8 +298,8 @@ BOOL GetSaveFileNameU8(LPOPENFILENAME ofn)
 }
 
 /*
-	ƒŠƒ“ƒN‚Ì‰ðŒˆ
-	‚ ‚ç‚©‚¶‚ßACoInitialize(NULL); ‚ðŽÀs‚µ‚Ä‚¨‚­‚±‚Æ
+	ãƒªãƒ³ã‚¯ã®è§£æ±º
+	ã‚ã‚‰ã‹ã˜ã‚ã€CoInitialize(NULL); ã‚’å®Ÿè¡Œã—ã¦ãŠãã“ã¨
 */
 BOOL ReadLinkU8(LPCSTR src, LPSTR dest, LPSTR arg)
 {
@@ -371,8 +395,72 @@ LPSTR GetLoadStrU8(UINT resId, HINSTANCE hI)
 }
 
 /*=========================================================================
-	UCS2(W) - UTF-8(U8) - ANSI(A) ‘ŠŒÝ•ÏŠ·
+	UCS2(W) - UTF-8(U8) - ANSI(A) ç›¸äº’å¤‰æ›
 =========================================================================*/
+int WtoU8(const WCHAR *src, char *dst, int bufsize, int max_len)
+{
+	if (bufsize == 1) {
+		*dst = 0;
+		return	0;
+	}
+
+	int affect_len = bufsize ? bufsize - 1 : 0;
+	int len = ::WideCharToMultiByte(CP_UTF8, 0, src, max_len, dst, affect_len, 0, 0);
+
+	if (len == 0 && dst && bufsize > 0) {
+		if ((len = (int)strnlen(dst, affect_len)) == affect_len) {
+			dst[len] = 0;
+		}
+	}
+
+	return	len;
+}
+
+int U8toW(const char *src, WCHAR *dst, int bufsize, int max_len)
+{
+	int len = ::MultiByteToWideChar(CP_UTF8, 0, src, max_len, dst, bufsize);
+
+	if (len == 0 && dst && bufsize > 0) {
+		if ((len = (int)wcsnlen(dst, bufsize)) == bufsize) {
+			dst[--len] = 0;
+		}
+	}
+
+	return	len;
+}
+
+int AtoW(const char *src, WCHAR *dst, int bufsize, int max_len)
+{
+	int len = ::MultiByteToWideChar(CP_ACP, 0, src, max_len, dst, bufsize);
+
+	if (len == 0 && dst && bufsize > 0) {
+		if ((len = (int)wcsnlen(dst, bufsize)) == bufsize) {
+			dst[--len] = 0;
+		}
+	}
+
+	return	len;
+}
+int WtoA(const WCHAR *src, char *dst, int bufsize, int max_len)
+{
+	if (bufsize == 1) {
+		*dst = 0;
+		return	0;
+	}
+
+	int affect_len = bufsize ? bufsize - 1 : 0;
+	int len = ::WideCharToMultiByte(CP_ACP, 0, src, max_len, dst, affect_len, 0, 0);
+
+	if (len == 0 && dst && bufsize > 0) {
+		if ((len = (int)strnlen(dst, affect_len)) == affect_len) {
+			dst[len] = 0;
+		}
+	}
+
+	return	len;
+}
+
+
 WCHAR *U8toW(const char *src, BOOL noStatic) {
 	static	WCHAR	*_wbuf = NULL;
 
@@ -497,40 +585,63 @@ char *U8toA(const char *src, BOOL noStatic) {
 }
 
 
-BOOL IsUTF8(const char *_s)
+BOOL IsUTF8(const char *_s, BOOL *is_ascii, char **invalid_point)
 {
-	const u_char *s = (const u_char *)_s;
+	const u_char	*s = (const u_char *)_s;
+	char 			*_invalid_point;
+	BOOL			tmp;
+
+	if (!is_ascii)      is_ascii = &tmp;
+	if (!invalid_point) invalid_point = &_invalid_point;
+
+	*is_ascii = TRUE;
 
 	while (*s) {
 		if (*s <= 0x7f) {
 		}
-		else if (*s <= 0xdf) {
-			if ((*++s & 0xc0) != 0x80) return FALSE;
-		}
-		else if (*s <= 0xef) {
-			if ((*++s & 0xc0) != 0x80) return FALSE;
-			if ((*++s & 0xc0) != 0x80) return FALSE;
-		}
-		else if (*s <= 0xf7) {
-			if ((*++s & 0xc0) != 0x80) return FALSE;
-			if ((*++s & 0xc0) != 0x80) return FALSE;
-			if ((*++s & 0xc0) != 0x80) return FALSE;
-		}
-		else if (*s <= 0xfb) {
-			if ((*++s & 0xc0) != 0x80) return FALSE;
-			if ((*++s & 0xc0) != 0x80) return FALSE;
-			if ((*++s & 0xc0) != 0x80) return FALSE;
-			if ((*++s & 0xc0) != 0x80) return FALSE;
-		}
-		else if (*s <= 0xfd) {
-			if ((*++s & 0xc0) != 0x80) return FALSE;
-			if ((*++s & 0xc0) != 0x80) return FALSE;
-			if ((*++s & 0xc0) != 0x80) return FALSE;
-			if ((*++s & 0xc0) != 0x80) return FALSE;
-			if ((*++s & 0xc0) != 0x80) return FALSE;
+		else {
+			*is_ascii = FALSE;
+			*invalid_point = (char *)s;
+
+			if (*s <= 0xdf) {
+				if ((*++s & 0xc0) != 0x80) return FALSE;
+			}
+			else if (*s <= 0xef) {
+				if ((*++s & 0xc0) != 0x80) return FALSE;
+				if ((*++s & 0xc0) != 0x80) return FALSE;
+			}
+			else if (*s <= 0xf7) {
+				if ((*++s & 0xc0) != 0x80) return FALSE;
+				if ((*++s & 0xc0) != 0x80) return FALSE;
+				if ((*++s & 0xc0) != 0x80) return FALSE;
+			}
+			else if (*s <= 0xfb) {
+				if ((*++s & 0xc0) != 0x80) return FALSE;
+				if ((*++s & 0xc0) != 0x80) return FALSE;
+				if ((*++s & 0xc0) != 0x80) return FALSE;
+				if ((*++s & 0xc0) != 0x80) return FALSE;
+			}
+			else if (*s <= 0xfd) {
+				if ((*++s & 0xc0) != 0x80) return FALSE;
+				if ((*++s & 0xc0) != 0x80) return FALSE;
+				if ((*++s & 0xc0) != 0x80) return FALSE;
+				if ((*++s & 0xc0) != 0x80) return FALSE;
+				if ((*++s & 0xc0) != 0x80) return FALSE;
+			}
+			else return FALSE;
 		}
 		s++;
 	}
 	return	TRUE;
+}
+
+BOOL StrictUTF8(char *s)
+{
+	char	*invalid_point = NULL;
+	if (!IsUTF8(s, NULL, &invalid_point) && invalid_point) {
+		*invalid_point = 0;
+		return	TRUE;
+	}
+	return	FALSE;
 }
 

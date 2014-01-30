@@ -1,10 +1,10 @@
-static char *tmisc_id = 
-	"@(#)Copyright (C) 1996-2010 H.Shirouzu		tmisc.cpp	Ver0.99";
+Ôªøstatic char *tmisc_id = 
+	"@(#)Copyright (C) 1996-2012 H.Shirouzu		tmisc.cpp	Ver0.99";
 /* ========================================================================
 	Project  Name			: Win32 Lightweight  Class Library Test
 	Module Name				: Application Frame Class
 	Create					: 1996-06-01(Sat)
-	Update					: 2010-05-09(Sun)
+	Update					: 2012-04-02(Mon)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -121,6 +121,169 @@ THashObj *THashTbl::Search(const void *data, u_int hash_id)
 }
 
 
+/*=========================================================================
+  „ÇØ„É©„Çπ Ôºö Condition
+  Ê¶Ç  Ë¶Å Ôºö Êù°‰ª∂Â§âÊï∞„ÇØ„É©„Çπ
+  Ë™¨  Êòé Ôºö 
+  Ê≥®  ÊÑè Ôºö 
+=========================================================================*/
+Condition::Condition(void)
+{
+	hEvents = NULL;
+}
+
+Condition::~Condition(void)
+{
+	UnInitialize();
+}
+
+BOOL Condition::Initialize(int _max_threads)
+{
+	UnInitialize();
+
+	max_threads = _max_threads;
+	waitEvents = new WaitEvent [max_threads];
+	hEvents = new HANDLE [max_threads];
+	for (int wait_id=0; wait_id < max_threads; wait_id++) {
+		if (!(hEvents[wait_id] = ::CreateEvent(0, FALSE, FALSE, NULL)))
+			return	FALSE;
+		waitEvents[wait_id] = CLEAR_EVENT;
+	}
+	::InitializeCriticalSection(&cs);
+	waitCnt = 0;
+	return	TRUE;
+}
+
+void Condition::UnInitialize(void)
+{
+	if (hEvents) {
+		while (--max_threads >= 0)
+			::CloseHandle(hEvents[max_threads]);
+		delete [] hEvents;
+		delete [] waitEvents;
+		hEvents = NULL;
+		waitEvents = NULL;
+		::DeleteCriticalSection(&cs);
+	}
+}
+
+BOOL Condition::Wait(DWORD timeout)
+{
+	int		wait_id = 0;
+
+	for (wait_id=0; wait_id < max_threads && waitEvents[wait_id] != CLEAR_EVENT; wait_id++)
+		;
+	if (wait_id == max_threads) {	// ÈÄöÂ∏∏„ÅØ„ÅÇ„Çä„Åà„Å™„ÅÑ
+		MessageBox(0, "Detect too many wait threads", "TLib", MB_OK);
+		return	FALSE;
+	}
+	waitEvents[wait_id] = WAIT_EVENT;
+	waitCnt++;
+	UnLock();
+
+	DWORD	status = ::WaitForSingleObject(hEvents[wait_id], timeout);
+
+	Lock();
+	--waitCnt;
+	waitEvents[wait_id] = CLEAR_EVENT;
+
+	return	status == WAIT_TIMEOUT ? FALSE : TRUE;
+}
+
+void Condition::Notify(void)	// ÁèæÁä∂„Åß„ÅØ„ÄÅÁú†„Å£„Å¶„ÅÑ„Çã„Çπ„É¨„ÉÉ„ÉâÂÖ®Âì°„ÇíËµ∑„Åì„Åô
+{
+	if (waitCnt > 0) {
+		for (int wait_id=0, done_cnt=0; wait_id < max_threads; wait_id++) {
+			if (waitEvents[wait_id] == WAIT_EVENT) {
+				::SetEvent(hEvents[wait_id]);
+				waitEvents[wait_id] = DONE_EVENT;
+				if (++done_cnt >= waitCnt)
+					break;
+			}
+		}
+	}
+}
+
+/*=========================================================================
+  „ÇØ„É©„Çπ Ôºö VBuf
+  Ê¶Ç  Ë¶Å Ôºö ‰ªÆÊÉ≥„É°„É¢„É™ÁÆ°ÁêÜ„ÇØ„É©„Çπ
+  Ë™¨  Êòé Ôºö 
+  Ê≥®  ÊÑè Ôºö 
+=========================================================================*/
+VBuf::VBuf(int _size, int _max_size, VBuf *_borrowBuf)
+{
+	Init();
+
+	if (_size || _max_size) AllocBuf(_size, _max_size, _borrowBuf);
+}
+
+VBuf::~VBuf()
+{
+	if (buf)
+		FreeBuf();
+}
+
+void VBuf::Init(void)
+{
+	buf = NULL;
+	borrowBuf = NULL;
+	size = usedSize = maxSize = 0;
+}
+
+BOOL VBuf::AllocBuf(int _size, int _max_size, VBuf *_borrowBuf)
+{
+	if (_max_size == 0)
+		_max_size = _size;
+	maxSize = _max_size;
+	borrowBuf = _borrowBuf;
+
+	if (borrowBuf) {
+		if (!borrowBuf->Buf() || borrowBuf->MaxSize() < borrowBuf->UsedSize() + maxSize)
+			return	FALSE;
+		buf = borrowBuf->Buf() + borrowBuf->UsedSize();
+		borrowBuf->AddUsedSize(maxSize + PAGE_SIZE);
+	}
+	else {
+	// 1page ÂàÜ„Å†„Åë‰ΩôË®à„Å´Á¢∫‰øùÔºàbuffer over flow Ê§úÂá∫Áî®Ôºâ
+		if (!(buf = (BYTE *)::VirtualAlloc(NULL, maxSize + PAGE_SIZE, MEM_RESERVE, PAGE_READWRITE))) {
+			Init();
+			return	FALSE;
+		}
+	}
+	return	Grow(_size);
+}
+
+BOOL VBuf::LockBuf(void)
+{
+	return	::VirtualLock(buf, size);
+}
+
+void VBuf::FreeBuf(void)
+{
+	if (buf) {
+		if (borrowBuf) {
+			::VirtualFree(buf, maxSize + PAGE_SIZE, MEM_DECOMMIT);
+		}
+		else {
+			::VirtualFree(buf, 0, MEM_RELEASE);
+		}
+	}
+	Init();
+}
+
+BOOL VBuf::Grow(int grow_size)
+{
+	if (size + grow_size > maxSize)
+		return	FALSE;
+
+	if (grow_size && !::VirtualAlloc(buf + size, grow_size, MEM_COMMIT, PAGE_READWRITE))
+		return	FALSE;
+
+	size += grow_size;
+	return	TRUE;
+}
+
+
 void InitInstanceForLoadStr(HINSTANCE hI)
 {
 	defaultStrInstance = hI;
@@ -199,7 +362,7 @@ HMODULE TLoadLibraryV(void *dllname)
 }
 
 /*=========================================================================
-	ÉpÉXçáê¨ÅiANSI î≈Åj
+	„Éë„ÇπÂêàÊàêÔºàANSI ÁâàÔºâ
 =========================================================================*/
 int MakePath(char *dest, const char *dir, const char *file)
 {
@@ -209,7 +372,7 @@ int MakePath(char *dest, const char *dir, const char *file)
 	if ((len = strlen(dir)) == 0)
 		return	wsprintf(dest, "%s", file);
 
-	if (dir[len -1] == '\\')	// ï\Ç»Ç«ÅA2byteñ⁄Ç™'\\'Ç≈èIÇÈï∂éöóÒëŒçÙ
+	if (dir[len -1] == '\\')	// Ë°®„Å™„Å©„ÄÅ2byteÁõÆ„Åå'\\'„ÅßÁµÇ„ÇãÊñáÂ≠óÂàóÂØæÁ≠ñ
 	{
 		if (len >= 2 && !IsDBCSLeadByte(dir[len -2]))
 			separetor = FALSE;
@@ -225,7 +388,7 @@ int MakePath(char *dest, const char *dir, const char *file)
 }
 
 /*=========================================================================
-	ÉpÉXçáê¨ÅiUNICODE î≈Åj
+	„Éë„ÇπÂêàÊàêÔºàUNICODE ÁâàÔºâ
 =========================================================================*/
 int MakePathW(WCHAR *dest, const WCHAR *dir, const WCHAR *file)
 {
@@ -248,7 +411,7 @@ WCHAR lGetCharIncA(const char **str)
 
 	if (IsDBCSLeadByte((BYTE)ch)) {
 		ch <<= BITS_OF_BYTE;
-		ch |= *(*str)++;	// null îªíËÇÕéËî≤Ç´
+		ch |= *(*str)++;	// null Âà§ÂÆö„ÅØÊâãÊäú„Åç
 	}
 	return	ch;
 }
@@ -295,17 +458,21 @@ inline u_char hexchar2char(u_char ch)
 {
 	if (ch >= '0' && ch <= '9')
 		return ch - '0';
-	ch = toupper(ch);
+	if (ch >= 'a' && ch <= 'z')
+		return ch - 'a' + 10;
 	if (ch >= 'A' && ch <= 'Z')
 		return ch - 'A' + 10;
-	return 0;
+	return 0xff;
 }
 
 BOOL hexstr2bin(const char *buf, BYTE *bindata, int maxlen, int *len)
 {
 	for (*len=0; buf[0] && buf[1] && *len < maxlen; buf+=2, (*len)++)
 	{
-		bindata[*len] = hexchar2char(buf[0]) << 4 | hexchar2char(buf[1]);
+		u_char c1 = hexchar2char(buf[0]);
+		u_char c2 = hexchar2char(buf[1]);
+		if (c1 == 0xff || c2 == 0xff) break;
+		bindata[*len] = (c1 << 4) | c2;
 	}
 	return	TRUE;
 }
@@ -333,7 +500,7 @@ int bin2hexstrW(const BYTE *bindata, int len, WCHAR *buf)
 }
 
 /* little-endian binary to hexstr */
-int bin2hexstr_bigendian(const BYTE *bindata, int len, char *buf)
+int bin2hexstr_revendian(const BYTE *bindata, int len, char *buf)
 {
 	int		sv_len = len;
 	while (len-- > 0)
@@ -345,18 +512,70 @@ int bin2hexstr_bigendian(const BYTE *bindata, int len, char *buf)
 	return	sv_len * 2;
 }
 
-BOOL hexstr2bin_bigendian(const char *buf, BYTE *bindata, int maxlen, int *len)
+BOOL hexstr2bin_revendian(const char *buf, BYTE *bindata, int maxlen, int *len)
 {
 	*len = 0;
 	for (int buflen = (int)strlen(buf); buflen >= 2 && *len < maxlen; buflen-=2, (*len)++)
 	{
-		bindata[*len] = hexchar2char(buf[buflen-1]) | hexchar2char(buf[buflen-2]) << 4;
+		u_char c1 = hexchar2char(buf[buflen-1]);
+		u_char c2 = hexchar2char(buf[buflen-2]);
+		if (c1 == 0xff || c2 == 0xff) break;
+		bindata[*len] = c1 | (c2 << 4);
 	}
 	return	TRUE;
 }
 
+int strip_crlf(char *s)
+{
+	char	*d = s;
+	char	*sv = s;
+
+	while (*s) {
+		char	c = *s++;
+		if (c != '\r' && c != '\n') *d++ = c;
+	}
+	*d = 0;
+	return	(int)(d - sv);
+}
+
+/* base64 convert routne */
+BOOL b64str2bin(const char *buf, BYTE *bindata, int maxlen, int *len)
+{
+	*len = maxlen;
+	return	pCryptStringToBinary(buf, 0, CRYPT_STRING_BASE64, bindata, (DWORD *)len, 0, 0);
+}
+
+int bin2b64str(const BYTE *bindata, int len, char *buf)
+{
+	int	size = len * 2 + 5;
+	if (!pCryptBinaryToString(bindata, len, CRYPT_STRING_BASE64, buf, (DWORD *)&size)) {
+		return 0;
+	}
+	return	strip_crlf(buf);
+}
+
+BOOL b64str2bin_revendian(const char *buf, BYTE *bindata, int maxlen, int *len)
+{
+	if (!b64str2bin(buf, bindata, maxlen, len)) return FALSE;
+	rev_order(bindata, *len);
+	return	TRUE;
+}
+
+int bin2b64str_revendian(const BYTE *bindata, int len, char *buf)
+{
+	BYTE *rev = new BYTE [len];
+
+	if (!rev) return -1;
+
+	rev_order(bindata, rev, len);
+	int	ret = bin2b64str(rev, len, buf);
+	delete [] rev;
+
+	return	ret;
+}
+
 /*
-	16êi -> long long
+	16ÈÄ≤ -> long long
 */
 _int64 hex2ll(char *buf)
 {
@@ -373,6 +592,26 @@ _int64 hex2ll(char *buf)
 	return	ret;
 }
 
+void rev_order(BYTE *data, int size)
+{
+	BYTE	*d1 = data;
+	BYTE	*d2 = data + size - 1;
+
+	for (BYTE *end = d1 + (size/2); d1 < end; ) {
+		BYTE	sv = *d1;
+		*d1++ = *d2;
+		*d2-- = sv;
+	}
+}
+
+void rev_order(const BYTE *src, BYTE *dst, int size)
+{
+	dst = dst + size - 1;
+
+	for (const BYTE *end = src + size; src < end; ) {
+		*dst-- = *src++;
+	}
+}
 
 /*=========================================================================
 	Debug
@@ -413,8 +652,33 @@ void DebugU8(char *fmt,...)
 	delete [] wbuf;
 }
 
+const char *Fmt(char *fmt,...)
+{
+	static char buf[8192];
+
+	va_list	ap;
+	va_start(ap, fmt);
+	_vsnprintf(buf, sizeof(buf), fmt, ap);
+	va_end(ap);
+
+	return	buf;
+}
+
+const WCHAR *FmtW(WCHAR *fmt,...)
+{
+	static WCHAR buf[8192];
+
+	va_list	ap;
+	va_start(ap, fmt);
+	_vsnwprintf(buf, sizeof(buf), fmt, ap);
+	va_end(ap);
+
+	return	buf;
+}
+
+
 /*=========================================================================
-	ó·äOèÓïÒéÊìæ
+	‰æãÂ§ñÊÉÖÂ†±ÂèñÂæó
 =========================================================================*/
 static char *ExceptionTitle;
 static char *ExceptionLogFile;
@@ -512,9 +776,9 @@ BOOL InstallExceptionFilter(char *title, char *info)
 
 
 /*
-	nulï∂éöÇïKÇ∏ïtó^Ç∑ÇÈ strncpy
+	nulÊñáÂ≠ó„ÇíÂøÖ„Åö‰ªò‰∏é„Åô„Çã strncpy
 */
-char *strncpyz(char *dest, const char *src, int num)
+char *strncpyz(char *dest, const char *src, size_t num)
 {
 	char	*sv = dest;
 
@@ -528,11 +792,11 @@ char *strncpyz(char *dest, const char *src, int num)
 }
 
 /*
-	ëÂï∂éöè¨ï∂éöÇñ≥éãÇ∑ÇÈ strncmp
+	Â§ßÊñáÂ≠óÂ∞èÊñáÂ≠ó„ÇíÁÑ°Ë¶ñ„Åô„Çã strncmp
 */
-int strncmpi(const char *str1, const char *str2, int num)
+int strncmpi(const char *str1, const char *str2, size_t num)
 {
-	for (int cnt=0; cnt < num; cnt++)
+	for (size_t cnt=0; cnt < num; cnt++)
 	{
 		char	c1 = toupper(str1[cnt]), c2 = toupper(str2[cnt]);
 
@@ -553,7 +817,7 @@ int strncmpi(const char *str1, const char *str2, int num)
 
 
 /*=========================================================================
-	UCS2(W) - ANSI(A) ëäå›ïœä∑
+	UCS2(W) - ANSI(A) Áõ∏‰∫íÂ§âÊèõ
 =========================================================================*/
 WCHAR *AtoW(const char *src, BOOL noStatic) {
 	static	WCHAR	*_wbuf = NULL;
@@ -591,6 +855,40 @@ WCHAR *wcsdupNew(const WCHAR *_s)
 }
 
 
+/* UNIX - Windows ÊñáÂ≠ó„Ç≥„Éº„ÉâÂ§âÊèõ */
+int LocalNewLineToUnix(const char *src, char *dest, int maxlen)
+{
+	char	*sv_dest = dest;
+	char	*max_dest = dest + maxlen - 1;
+	int		len = 0;
+
+	while (*src && dest < max_dest) {
+		if ((*dest = *src++) != '\r') dest++;
+	}
+	*dest = 0;
+
+	return	int(dest - sv_dest);
+}
+
+int UnixNewLineToLocal(const char *src, char *dest, int maxlen)
+{
+	char	*sv_dest = dest;
+	char	*max_dest = dest + maxlen - 1;
+
+	while (*src && dest < max_dest) {
+		if ((*dest = *src++) == '\n' && dest + 1 < max_dest) {
+			*dest++ = '\r';
+			*dest++ = '\n';
+		}
+		else dest++;
+	}
+	*dest = 0;
+
+	return	int(dest - sv_dest);
+}
+
+
+/* Win64Ê§úÂá∫ */
 BOOL TIsWow64()
 {
 	static BOOL	once = FALSE;
@@ -822,10 +1120,25 @@ BOOL TChangeWindowMessageFilter(UINT msg, DWORD flg)
 	return	ret;
 }
 
+void TSwitchToThisWindow(HWND hWnd, BOOL flg)
+{
+	static BOOL	once = FALSE;
+	static void	(WINAPI *pSwitchToThisWindow)(HWND, BOOL);
+
+	if (!once) {
+		pSwitchToThisWindow = (void (WINAPI *)(HWND, BOOL))
+			GetProcAddress(::GetModuleHandle("user32"), "SwitchToThisWindow");
+		once = TRUE;
+	}
+
+	if (pSwitchToThisWindow) {
+		pSwitchToThisWindow(hWnd, flg);
+	}
+}
 
 /*
-	ÉäÉìÉN
-	Ç†ÇÁÇ©Ç∂ÇﬂÅACoInitialize(NULL); Çé¿çsÇµÇƒÇ®Ç≠Ç±Ç∆
+	„É™„É≥„ÇØ
+	„ÅÇ„Çâ„Åã„Åò„ÇÅ„ÄÅCoInitialize(NULL); „ÇíÂÆüË°å„Åó„Å¶„Åä„Åè„Åì„Å®
 	src  ... old_path
 	dest ... new_path
 */
@@ -845,7 +1158,7 @@ BOOL SymLinkV(void *src, void *dest, void *arg)
 		shellLink->SetWorkingDirectory((char *)buf);
 		if (SUCCEEDED(shellLink->QueryInterface(IID_IPersistFile, (void **)&persistFile))) {
 			if (!IS_WINNT_V) {
-				MultiByteToWideChar(CP_ACP, 0, (char *)dest, -1, wbuf, MAX_PATH);
+				AtoW((char *)dest, wbuf, MAX_PATH);
 				ps_dest = wbuf;
 			}
 			if (SUCCEEDED(persistFile->Save(ps_dest, TRUE))) {
@@ -862,7 +1175,7 @@ BOOL SymLinkV(void *src, void *dest, void *arg)
 
 BOOL ReadLinkV(void *src, void *dest, void *arg)
 {
-	IShellLink		*shellLink;		// é¿ç€ÇÕ IShellLinkA or IShellLinkW
+	IShellLink		*shellLink;		// ÂÆüÈöõ„ÅØ IShellLinkA or IShellLinkW
 	IPersistFile	*persistFile;
 	WCHAR			wbuf[MAX_PATH];
 	BOOL			ret = FALSE;
@@ -871,7 +1184,7 @@ BOOL ReadLinkV(void *src, void *dest, void *arg)
 			(void **)&shellLink))) {
 		if (SUCCEEDED(shellLink->QueryInterface(IID_IPersistFile, (void **)&persistFile))) {
 			if (!IS_WINNT_V) {
-				::MultiByteToWideChar(CP_ACP, 0, (char *)src, -1, wbuf, MAX_PATH);
+				AtoW((char *)src, wbuf, MAX_PATH);
 				src = wbuf;
 			}
 			if (SUCCEEDED(persistFile->Load((WCHAR *)src, STGM_READ))) {
@@ -890,7 +1203,7 @@ BOOL ReadLinkV(void *src, void *dest, void *arg)
 }
 
 /*
-	ÉäÉìÉNÉtÉ@ÉCÉãçÌèú
+	„É™„É≥„ÇØ„Éï„Ç°„Ç§„É´ÂâäÈô§
 */
 BOOL DeleteLinkV(void *path)
 {
@@ -906,7 +1219,7 @@ BOOL DeleteLinkV(void *path)
 }
 
 /*
-	êeÉfÉBÉåÉNÉgÉäéÊìæÅiïKÇ∏ÉtÉãÉpÉXÇ≈Ç†ÇÈÇ±Ç∆ÅBUNCëŒâûÅj
+	Ë¶™„Éá„Ç£„É¨„ÇØ„Éà„É™ÂèñÂæóÔºàÂøÖ„Åö„Éï„É´„Éë„Çπ„Åß„ÅÇ„Çã„Åì„Å®„ÄÇUNCÂØæÂøúÔºâ
 */
 BOOL GetParentDirV(const void *srcfile, void *dir)
 {
@@ -918,7 +1231,7 @@ BOOL GetParentDirV(const void *srcfile, void *dir)
 	if (((char *)fname - (char *)path) > 3 * CHAR_LEN_V || GetChar(path, 1) != ':')
 		SetChar(fname, -1, 0);
 	else
-		SetChar(fname, 0, 0);		// C:\ ÇÃèÍçá
+		SetChar(fname, 0, 0);		// C:\ „ÅÆÂ†¥Âêà
 
 	strcpyV(dir, path);
 	return	TRUE;
@@ -926,8 +1239,8 @@ BOOL GetParentDirV(const void *srcfile, void *dir)
 
 
 
-// HtmlHelp WorkShop ÇÉCÉìÉXÉgÅ[ÉãÇµÇƒÅAhtmlhelp.h Ç include path Ç…
-// ì¸ÇÍÇÈÇ±Ç∆ÅB
+// HtmlHelp WorkShop „Çí„Ç§„É≥„Çπ„Éà„Éº„É´„Åó„Å¶„ÄÅhtmlhelp.h „Çí include path „Å´
+// ÂÖ•„Çå„Çã„Åì„Å®„ÄÇ
 #define ENABLE_HTML_HELP
 #if defined(ENABLE_HTML_HELP)
 #include <htmlhelp.h>
@@ -959,9 +1272,24 @@ HWND ShowHelpV(HWND hOwner, void *help_dir, void *help_file, void *section)
 	return	NULL;
 }
 
+HWND ShowHelpU8(HWND hOwner, const char *help_dir, const char *help_file, const char *section)
+{
+	if (IS_WINNT_V) {
+		Wstr	dir(help_dir);
+		Wstr	file(help_file);
+		Wstr	sec(section);
+		return	ShowHelpV(hOwner, dir.Buf(), file.Buf(), sec.Buf());
+	}
+	else {
+		MBCSstr	dir(help_dir);
+		MBCSstr	file(help_file);
+		MBCSstr	sec(section);
+		return	ShowHelpV(hOwner, dir.Buf(), file.Buf(), sec.Buf());
+	}
+}
+
 #ifdef REPLACE_DEBUG_ALLOCATOR
 
-#define PAGE_SIZE  4096
 #define VALLOC_SIG 0x12345678
 #define ALLOC_ALIGN 4
 //#define NON_FREE

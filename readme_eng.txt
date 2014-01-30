@@ -1,5 +1,5 @@
-======================================================================
-                   FastCopy  ver2.08                   2011/02/28
+﻿======================================================================
+                   FastCopy  ver2.11                   2012/06/18
                                                  SHIROUZU Hiroaki
 ======================================================================
 
@@ -15,7 +15,7 @@
 
 License:
 	---------------------------------------------------------------
-	 Copyright 2004-2011 SHIROUZU Hiroaki All rights reserved.
+	 Copyright 2004-2012 SHIROUZU Hiroaki All rights reserved.
 
 	Redistribution and use in source and binary forms, with or
 	without modification, are permitted provided that the following
@@ -44,10 +44,9 @@ License:
 	THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 	---------------------------------------------------------------
 
-Usage�F
+Usage：
 	Please see fastcopy.chm
 
 Build:
-	FastCopy/Install/ShellExt ... VC4.1
-	ShellExt64 ... x64 compiler
+	VS2005 or later
 

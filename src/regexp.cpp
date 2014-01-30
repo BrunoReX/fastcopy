@@ -1,4 +1,4 @@
-static char *regexp_id = 
+ï»¿static char *regexp_id = 
 	"@(#)Copyright (C) 2005-2006 H.Shirouzu		regexp.cpp	ver1.84";
 /* ========================================================================
 	Project  Name			: Regular Expression / Wild Card Match Library
@@ -113,7 +113,7 @@ void RegExp::AddRegStatesEx(StatesType type, WCHAR ch, RegExp::CaseSense cs)
 BOOL RegExp::RegisterWildCard(const void *wild_str, RegExp::CaseSense cs)
 {
 	if (max_state + lstrlenV(wild_str) >= sizeof(RegStates) * BITS_OF_BYTE - 2)
-		return	FALSE;		// start & end ‚Ì‚Qó‘Ô‚ğœ‚¢‚½c‚è
+		return	FALSE;		// start & end ã®ï¼’çŠ¶æ…‹ã‚’é™¤ã„ãŸæ®‹ã‚Š
 
 	AddEpStates(0, (RegStates)1 << ++max_state);
 
@@ -126,7 +126,7 @@ BOOL RegExp::RegisterWildCard(const void *wild_str, RegExp::CaseSense cs)
 
 	do {
 		last_ch = ch;
-		ch = lGetCharIncV(&wild_str);	// 0 ‚à•¶––”»’è•¶š‚Æ‚µ‚Ä“o˜^
+		ch = lGetCharIncV(&wild_str);	// 0 ã‚‚æ–‡æœ«åˆ¤å®šæ–‡å­—ã¨ã—ã¦ç™»éŒ²
 
 		switch (escape) {
 		case 1:  escape = 2; break;
@@ -152,8 +152,8 @@ BOOL RegExp::RegisterWildCard(const void *wild_str, RegExp::CaseSense cs)
 					continue;
 				}
 			}
-			if (ch || escape || last_ch != '*') {	// '*' ‚ÅI—¹‚µ‚½ê‡‚Í '\0'
-				AddRegStatesEx(type, ch, cs);		// ‚Ü‚ÅŠm”F‚¹‚¸‚É”»’èI—¹‚³‚¹‚é
+			if (ch || escape || last_ch != '*') {	// '*' ã§çµ‚äº†ã—ãŸå ´åˆã¯ '\0'
+				AddRegStatesEx(type, ch, cs);		// ã¾ã§ç¢ºèªã›ãšã«åˆ¤å®šçµ‚äº†ã•ã›ã‚‹
 				max_state++;
 			}
 		}
@@ -207,7 +207,7 @@ BOOL RegExp::IsMatch(const void *target)
 	RegStates	total_states = GetEpStates(1);
 
 	while ((total_states & end_states) == 0 && total_states) {
-		WCHAR	ch = lGetCharIncV(&target);		// 0 ‚Í•¶––”»’è•¶š‚Æ‚µ‚Ä—˜—p
+		WCHAR	ch = lGetCharIncV(&target);		// 0 ã¯æ–‡æœ«åˆ¤å®šæ–‡å­—ã¨ã—ã¦åˆ©ç”¨
 
 		total_states = ((total_states << 1) & GetRegStates(NORMAL_TBL, ch))
 						| (GetEpStates(total_states) & ~GetRegStates(REV_TBL, ch));

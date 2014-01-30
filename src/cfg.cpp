@@ -1,9 +1,9 @@
-static char *cfg_id = 
-	"@(#)Copyright (C) 2004-2010 H.Shirouzu		cfg.cpp	ver2.05";
+Ôªøstatic char *cfg_id = 
+	"@(#)Copyright (C) 2004-2012 H.Shirouzu		cfg.cpp	ver2.10";
 /* ========================================================================
 	Project  Name			: Fast/Force copy file and directory
 	Create					: 2004-09-15(Wed)
-	Update					: 2010-11-15(Mon)
+	Update					: 2012-06-17(Sun)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -77,6 +77,8 @@ static char *cfg_id =
 #define RECREATE_KEY			"recreate"
 #define EXTENDFILTER_KEY		"extend_filter"
 #define WINPOS_KEY				"win_pos"
+#define TASKBARMODE_KEY			"taskbarMode"
+#define INFOSPAN_KEY			"infoSpan"
 
 #define NONBUFMINSIZENTFS_KEY	"nonbuf_minsize_ntfs2"
 #define NONBUFMINSIZEFAT_KEY	"nonbuf_minsize_fat"
@@ -105,7 +107,7 @@ static char *cfg_id =
 #define DEFAULT_EMPTYDIR		1
 #define DEFAULT_FORCESTART		0
 #ifdef _WIN64
-#define DEFAULT_BUFSIZE			64
+#define DEFAULT_BUFSIZE			128
 #define DEFAULT_MAXTRANSSIZE	16
 #define DEFAULT_MAXATTRSIZE		(1024 * 1024 * 1024)
 #define DEFAULT_MAXDIRSIZE		(1024 * 1024 * 1024)
@@ -116,18 +118,19 @@ static char *cfg_id =
 #define DEFAULT_MAXDIRSIZE		(128 * 1024 * 1024)
 #endif
 #define DEFAULT_MAXOPENFILES	256
-#define DEFAULT_NBMINSIZE_NTFS	64		// nbMinSize éQè∆
-#define DEFAULT_NBMINSIZE_FAT	128		// nbMinSize éQè∆
+#define DEFAULT_NBMINSIZE_NTFS	64		// nbMinSize ÂèÇÁÖß
+#define DEFAULT_NBMINSIZE_FAT	128		// nbMinSize ÂèÇÁÖß
 #define DEFAULT_LINKHASH		300000
 #define DEFAULT_ALLOWCONTFSIZE	(1024 * 1024 * 1024)
 #define DEFAULT_WAITTICK		10
 #define JOB_MAX					1000
 #define FINACT_MAX				1000
 #define DEFAULT_FASTCOPYLOG		"FastCopy.log"
+#define DEFAULT_INFOSPAN		2
 
 
 /*
-	Vistaà»ç~
+	Vista‰ª•Èôç
 */
 #ifdef _WIN64
 BOOL ConvertToX86Dir(void *target)
@@ -210,10 +213,10 @@ BOOL ConvertVirtualStoreConf(void *execDirV, void *userDirV, void *virtualDirV)
 
 
 /*=========================================================================
-  ÉNÉâÉX ÅF Cfg
-  äT  óv ÅF ÉRÉìÉtÉBÉOÉNÉâÉX
-  ê‡  ñæ ÅF 
-  íç  à” ÅF 
+  „ÇØ„É©„Çπ Ôºö Cfg
+  Ê¶Ç  Ë¶Å Ôºö „Ç≥„É≥„Éï„Ç£„Ç∞„ÇØ„É©„Çπ
+  Ë™¨  Êòé Ôºö 
+  Ê≥®  ÊÑè Ôºö 
 =========================================================================*/
 Cfg::Cfg()
 {
@@ -326,7 +329,7 @@ BOOL Cfg::ReadIni(void *user_dir, void *virtual_dir)
 	diskMode		= ini.GetInt(DISKMODE_KEY, 0);
 	isTopLevel		= ini.GetInt(ISTOPLEVEL_KEY, FALSE);
 	isErrLog		= ini.GetInt(ISERRLOG_KEY, TRUE);
-	isUtf8Log		= ini.GetInt(ISUTF8LOG_KEY, FALSE);
+	isUtf8Log		= ini.GetInt(ISUTF8LOG_KEY, TRUE);
 	fileLogMode		= ini.GetInt(FILELOGMODE_KEY, 0);
 	aclErrLog		= ini.GetInt(ACLERRLOG_KEY, FALSE);
 	streamErrLog	= ini.GetInt(STREAMERRLOG_KEY, FALSE);
@@ -358,6 +361,9 @@ BOOL Cfg::ReadIni(void *user_dir, void *virtual_dir)
 	allowContFsize	= ini.GetInt(ALLOWCONTFSIZE_KEY, DEFAULT_ALLOWCONTFSIZE);
 	isReCreate		= ini.GetInt(RECREATE_KEY, FALSE);
 	isExtendFilter	= ini.GetInt(EXTENDFILTER_KEY, FALSE);
+	taskbarMode		= ini.GetInt(TASKBARMODE_KEY, 0);
+	infoSpan		= ini.GetInt(INFOSPAN_KEY, DEFAULT_INFOSPAN);
+	if (infoSpan < 0 || infoSpan > 2) infoSpan = DEFAULT_INFOSPAN;
 
 	ini.GetStr(WINPOS_KEY, buf, MAX_PATH, "");
 	winpos.x   =      (p = strtok(buf,  ", \t")) ? atoi(p) : INVALID_POINTVAL;
@@ -571,6 +577,8 @@ BOOL Cfg::WriteIni(void)
 //	int.SetInt(ALLOWCONTFSIZE_KEY, allowContFsize);
 //	ini.SetInt(RECREATE_KEY, isReCreate);
 	ini.SetInt(EXTENDFILTER_KEY, isExtendFilter);
+	ini.SetInt(TASKBARMODE_KEY, taskbarMode);
+	ini.SetInt(INFOSPAN_KEY, infoSpan);
 
 	char	val[256];
 	sprintf(val, "%d,%d,%d,%d", winpos.x, winpos.y, winsize.cx, winsize.cy);
@@ -743,8 +751,9 @@ BOOL Cfg::IniStrToV(char *inipath, void *path)
 		if (*inipath == '|') {
 			hexstr2bin(inipath + 1, (BYTE *)path, len, &len);
 		}
-		else
-			::MultiByteToWideChar(CP_ACP, 0, (char *)inipath, -1, (WCHAR *)path, len);
+		else {
+			AtoW(inipath, (WCHAR *)path, len);
+		}
 	}
 	else
 		strcpyV(path, inipath);

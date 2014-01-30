@@ -1,10 +1,10 @@
-static char *tdlg_id = 
-	"@(#)Copyright (C) 1996-2009 H.Shirouzu		tdlg.cpp	Ver0.97";
+﻿static char *tdlg_id = 
+	"@(#)Copyright (C) 1996-2011 H.Shirouzu		tdlg.cpp	Ver0.97";
 /* ========================================================================
 	Project  Name			: Win32 Lightweight  Class Library Test
 	Module Name				: Dialog Class
 	Create					: 1996-06-01(Sat)
-	Update					: 2009-03-09(Mon)
+	Update					: 2011-04-20(Wed)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -63,7 +63,9 @@ LRESULT TDlg::WinProc(UINT uMsg, WPARAM wParam, LPARAM lParam)
 		if (rect.left != CW_USEDEFAULT && !(::GetWindowLong(hWnd, GWL_STYLE) & WS_CHILD)) {
 			MoveWindow(rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top,FALSE);
 		}
-		GetWindowRect(&orgRect);
+		if (rect.left == CW_USEDEFAULT) {
+			GetWindowRect(&orgRect);
+		}
 		return	EvCreate(lParam);
 
 	case WM_CLOSE:
@@ -82,8 +84,12 @@ LRESULT TDlg::WinProc(UINT uMsg, WPARAM wParam, LPARAM lParam)
 		EvTimer(wParam, (TIMERPROC)lParam);
 		return	0;
 
+	case WM_DESTROY:
+		EvDestroy();
+		return	0;
+
 	case WM_NCDESTROY:
-		GetWindowRect(&rect);
+		if (!::IsIconic(hWnd)) GetWindowRect(&rect);
 		EvNcDestroy();
 		TApp::GetApp()->DelWin(this);
 		hWnd = 0;
@@ -113,6 +119,10 @@ LRESULT TDlg::WinProc(UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 	case WM_SIZE:
 		EvSize((UINT)wParam, LOWORD(lParam), HIWORD(lParam));
+		return	0;
+
+	case WM_MOVE:
+		EvMove(LOWORD(lParam), HIWORD(lParam));
 		return	0;
 
 	case WM_SHOWWINDOW:
@@ -162,12 +172,31 @@ LRESULT TDlg::WinProc(UINT uMsg, WPARAM wParam, LPARAM lParam)
 		return	result;
 
 	case WM_ACTIVATEAPP:
-		EventActivateApp((BOOL)wParam, (DWORD)lParam);
+		EvActivateApp((BOOL)wParam, (DWORD)lParam);
 		break;
 
 	case WM_ACTIVATE:
-		EventActivate(LOWORD(wParam), HIWORD(wParam), (HWND)lParam);
+		EvActivate(LOWORD(wParam), HIWORD(wParam), (HWND)lParam);
 		break;
+
+	case WM_DROPFILES:
+		EvDropFiles((HDROP)wParam);
+		return	0;
+
+	case WM_CHAR:
+		EvChar((WCHAR)wParam, lParam);
+		SetWindowLong(DWL_MSGRESULT, 0);
+		return	0;
+
+	case WM_WINDOWPOSCHANGING:
+		EvWindowPosChanging((WINDOWPOS *)lParam);
+		SetWindowLong(DWL_MSGRESULT, 0);
+		return	0;
+
+	case WM_WINDOWPOSCHANGED:
+		EvWindowPosChanged((WINDOWPOS *)lParam);
+		SetWindowLong(DWL_MSGRESULT, 0);
+		return	0;
 
 	case WM_LBUTTONUP:
 	case WM_RBUTTONUP:
@@ -194,6 +223,11 @@ LRESULT TDlg::WinProc(UINT uMsg, WPARAM wParam, LPARAM lParam)
 		EventScroll(uMsg, LOWORD(wParam), HIWORD(wParam), (HWND)lParam);
 		return	0;
 
+	case WM_ENTERMENULOOP:
+	case WM_EXITMENULOOP:
+		EventMenuLoop(uMsg, (BOOL)wParam);
+		break;
+
 	case WM_INITMENU:
 	case WM_INITMENUPOPUP:
 		EventInitMenu(uMsg, (HMENU)wParam, LOWORD(lParam), (BOOL)HIWORD(lParam));
@@ -201,10 +235,6 @@ LRESULT TDlg::WinProc(UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 	case WM_MENUSELECT:
 		EvMenuSelect(LOWORD(wParam), (BOOL)HIWORD(wParam), (HMENU)lParam);
-		return	0;
-
-	case WM_DROPFILES:
-		EvDropFiles((HDROP)wParam);
 		return	0;
 
 	case WM_CTLCOLORBTN:
@@ -224,10 +254,15 @@ LRESULT TDlg::WinProc(UINT uMsg, WPARAM wParam, LPARAM lParam)
 		return	0;
 
 	default:
-		if (uMsg >= WM_USER && uMsg <= 0x7FFF || uMsg >= 0xC000 && uMsg <= 0xFFFF)
+		if (uMsg >= WM_APP && uMsg <= 0xBFFF) {
+			result = EventApp(uMsg, wParam, lParam);
+		}
+		else if (uMsg >= WM_USER && uMsg < WM_APP || uMsg >= 0xC000 && uMsg <= 0xFFFF) {
 			result = EventUser(uMsg, wParam, lParam);
-		else
+		}
+		else {
 			result = EventSystem(uMsg, wParam, lParam);
+		}
 		SetWindowLong(DWL_MSGRESULT, result);
 		return	result;
 	}
@@ -290,7 +325,16 @@ int TDlg::SetDlgItem(UINT ctl_id, DWORD flags)
 	WINDOWPLACEMENT wp;
 	wp.length = sizeof(wp);
 
-#define BIG_ALLOC 16
+	for (int i=0; i < maxItems; i++) {
+		DlgItem *item = dlgItems + i;
+		if (item->id == ctl_id) {
+			item->hWnd = GetDlgItem(ctl_id);
+			item->flags = flags;
+			return i;
+		}
+	}
+
+#define BIG_ALLOC 50
 	if ((maxItems % BIG_ALLOC) == 0) {
 		DlgItem *p = (DlgItem *)realloc(dlgItems, (maxItems + BIG_ALLOC) * sizeof(DlgItem));
 		if (!p) return -1;
@@ -305,6 +349,7 @@ int TDlg::SetDlgItem(UINT ctl_id, DWORD flags)
 	item->wpos.cx = wp.rcNormalPosition.right - wp.rcNormalPosition.left;
 	item->wpos.cy = wp.rcNormalPosition.bottom - wp.rcNormalPosition.top;
 	item->flags = flags;
+	item->id = ctl_id;
 
 	return	maxItems++;
 }
@@ -323,14 +368,16 @@ BOOL TDlg::FitDlgItems()
 		DWORD	f = item->flags;
 
 		if (f & FIT_SKIP) continue;
-		int x = (f & LEFT_FIT) == LEFT_FIT ? item->wpos.x : item->wpos.x + xdiff;
-		int y = (f & TOP_FIT)  == TOP_FIT  ? item->wpos.y : item->wpos.y + ydiff;
+		int x = (f & LEFT_FIT) == LEFT_FIT ? item->wpos.x :
+				(f & HMID_FIT) == HMID_FIT ? item->wpos.x + xdiff/2 : item->wpos.x + xdiff;
+		int y = (f & TOP_FIT)  == TOP_FIT  ? item->wpos.y :
+				(f & VMID_FIT) == VMID_FIT ? item->wpos.y + ydiff/2 : item->wpos.y + ydiff;
 		int w = (f & X_FIT)    == X_FIT    ? item->wpos.cx + xdiff : item->wpos.cx;
 		int h = (f & Y_FIT)    == Y_FIT    ? item->wpos.cy + ydiff : item->wpos.cy;
 
-		hdwp = ::DeferWindowPos(hdwp, item->hWnd, 0, x, y, w, h, dwFlg);
+		if (!(hdwp = ::DeferWindowPos(hdwp, item->hWnd, 0, x, y, w, h, dwFlg))) return FALSE;
 	}
-	EndDeferWindowPos(hdwp);
+	::EndDeferWindowPos(hdwp);
 
 	return	TRUE;
 }

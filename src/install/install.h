@@ -1,9 +1,9 @@
-/* @(#)Copyright (C) 2005-2010 H.Shirouzu		install.h	Ver2.00 */
+﻿/* @(#)Copyright (C) 2005-2012 H.Shirouzu		install.h	Ver2.10 */
 /* ========================================================================
 	Project  Name			: Installer for IPMSG32
 	Module Name				: Main Header
 	Create					: 2005-02-02(Wed)
-	Update					: 2010-05-09(Sun)
+	Update					: 2012-06-17(Sun)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -53,7 +53,7 @@ public:
 	virtual BOOL	EvCommand(WORD wNotifyCode, WORD wID, LPARAM hwndCtl);
 #if 0
 	virtual BOOL	EvNcDestroy(void);
-	virtual BOOL	EventUser(UINT uMsg, WPARAM wParam, LPARAM lParam);
+	virtual BOOL	EventApp(UINT uMsg, WPARAM wParam, LPARAM lParam);
 #endif
 	BOOL	Install(void);
 	BOOL	UnInstall(void);
@@ -95,6 +95,20 @@ public:
 	virtual BOOL	EvCommand(WORD wNotifyCode, WORD wID, LPARAM hwndCtl);
 };
 
+class TLaunchDlg : public TDlg
+{
+protected:
+	char *msg;
+
+public:
+	TLaunchDlg(LPCSTR _msg, TWin *_win);
+	virtual ~TLaunchDlg();
+
+	virtual BOOL	EvCreate(LPARAM lParam);
+	virtual BOOL	EvCommand(WORD wNotifyCode, WORD wID, LPARAM hwndCtl);
+};
+
+
 #define FASTCOPY			"FastCopy"
 #define FASTCOPY_EXE		"FastCopy.exe"
 #define INSTALL_EXE			"setup.exe"
@@ -131,7 +145,6 @@ public:
 #define UNINSTALL_STR		"UnInstall"
 
 // function prototype
-int strncmpi(const char *str1, const char *str2, int num);
 void BrowseDirDlg(TWin *parentWin, UINT editCtl, char *title);
 int CALLBACK BrowseDirDlg_Proc(HWND hWnd, UINT uMsg, LPARAM lParam, LPARAM data);
 int MakePath(char *dest, const char *dir, const char *file);

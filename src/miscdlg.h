@@ -1,9 +1,9 @@
-/* static char *miscdlg_id = 
-	"@(#)Copyright (C) 2005-2010 H.Shirouzu		miscdlg.h	Ver2.04"; */
+ï»¿/* static char *miscdlg_id = 
+	"@(#)Copyright (C) 2005-2012 H.Shirouzu		miscdlg.h	Ver2.10"; */
 /* ========================================================================
 	Project  Name			: Fast/Force copy file and directory
 	Create					: 2005-01-23(Sun)
-	Update					: 2010-11-07(Sun)
+	Update					: 2012-06-17(Sun)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -115,7 +115,7 @@ public:
 protected:
 	void		*fileBuf;
 	IMalloc		*iMalloc;
-	BROWSEINFO	brInfo;		// W version ‚Æ‚Ì·‚ÍA•¶šƒ|ƒCƒ“ƒ^Œnƒƒ“ƒo‚ÌŒ^‚Ìˆá‚¢‚Ì‚İ
+	BROWSEINFO	brInfo;		// W version ã¨ã®å·®ã¯ã€æ–‡å­—ãƒã‚¤ãƒ³ã‚¿ç³»ãƒ¡ãƒ³ãƒã®å‹ã®é•ã„ã®ã¿
 	int			flg;
 
 public:
@@ -147,6 +147,8 @@ public:
 };
 
 #define OFDLG_DIRSELECT		0x0001
+#define OFDLG_WITHQUOTE		0x0002
+
 class TOpenFileDlg : public TSubClass {
 public:
 	enum	OpenMode { OPEN, MULTI_OPEN, SAVE, NODEREF_SAVE };

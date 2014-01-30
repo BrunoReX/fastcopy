@@ -1,10 +1,10 @@
-static char *tapp_id = 
-	"@(#)Copyright (C) 1996-2009 H.Shirouzu		tapp.cpp	Ver0.99";
+﻿static char *tapp_id = 
+	"@(#)Copyright (C) 1996-2011 H.Shirouzu		tapp.cpp	Ver0.99";
 /* ========================================================================
 	Project  Name			: Win32 Lightweight  Class Library Test
 	Module Name				: Application Frame Class
 	Create					: 1996-06-01(Sat)
-	Update					: 2009-03-09(Mon)
+	Update					: 2011-04-10(Sun)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -65,11 +65,11 @@ int TApp::Run(void)
 
 BOOL TApp::PreProcMsg(MSG *msg)	// for TranslateAccel & IsDialogMessage
 {
-	for (HWND hWnd=msg->hwnd; hWnd != NULL; hWnd=::GetParent(hWnd))
+	for (HWND hWnd=msg->hwnd; hWnd; hWnd=::GetParent(hWnd))
 	{
 		TWin	*win = SearchWnd(hWnd);
 
-		if (win != NULL)
+		if (win)
 			return	win->PreProcMsg(msg);
 	}
 
@@ -84,7 +84,7 @@ LRESULT CALLBACK TApp::WinProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPara
 	if (win)
 		return	win->WinProc(uMsg, wParam, lParam);
 
-	if ((win = app->preWnd) != NULL)
+	if ((win = app->preWnd))
 	{
 		app->preWnd = NULL;
 		app->AddWinByWnd(win, hWnd);
@@ -117,6 +117,22 @@ BOOL TApp::InitApp(void)	// reference kwc
 	}
 
 	return	TRUE;
+}
+
+void TApp::Idle(DWORD timeout)
+{
+	TApp	*app = TApp::GetApp();
+	DWORD	start = GetTickCount();
+	MSG		msg;
+
+	while (::PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
+		if (app->PreProcMsg(&msg))
+			continue;
+
+		::TranslateMessage(&msg);
+		::DispatchMessage(&msg);
+		if (GetTickCount() - start >= timeout) break;
+	}
 }
 
 BOOL TRegisterClass(LPCSTR class_name, UINT style, HICON hIcon, HCURSOR hCursor,

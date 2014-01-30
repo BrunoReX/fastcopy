@@ -1,5 +1,5 @@
 //{{NO_DEPENDENCIES}}
-// Microsoft Developer Studio generated include file.
+// Microsoft Visual C++ generated include file.
 // Used by install.rc
 //
 #define IDS_MKDIR                       1
@@ -12,21 +12,26 @@
 #define IDS_START                       8
 #define IDS_DELAYSETUPCOMPLETE          9
 #define IDS_ADMINCHANGE                 10
+#define IDS_COMPLETE_WIN7               11
 #define INSTALL_SHEET                   101
 #define SETUP_ICON                      104
 #define MKDIR_BUTTON                    110
 #define RMDIR_BUTTON                    111
 #define INSTALL_DIALOG                  149
 #define INPUT_DIALOG                    150
-#define UNINSTALL_SHEET                 151
+#define LAUNCH_DIALOG                   151
+#define UNINSTALL_SHEET                 152
 #define INSTALL_STATIC                  1133
+#define MESSAGE_STATIC                  1134
 #define FILE_EDIT                       1135
 #define FILE_BUTTON                     1136
 #define DESKTOP_CHECK                   1138
 #define PROGRAM_CHECK                   1139
-#define INPUT_EDIT                      1139
+#define INPUT_EDIT                      1140
 #define SETUP_RADIO                     1143
 #define UNINSTALL_RADIO                 1147
+#define LAUNCH_BUTTON                   1148
+#define RUNAS_BUTTON                    1155
 
 // Next default values for new objects
 // 
@@ -36,7 +41,7 @@
 #define _APS_3D_CONTROLS                     1
 #define _APS_NEXT_RESOURCE_VALUE        153
 #define _APS_NEXT_COMMAND_VALUE         30034
-#define _APS_NEXT_CONTROL_VALUE         1155
+#define _APS_NEXT_CONTROL_VALUE         1156
 #define _APS_NEXT_SYMED_VALUE           112
 #endif
 #endif

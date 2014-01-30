@@ -1,9 +1,9 @@
-/* static char *fastcopy_id = 
-	"@(#)Copyright (C) 2004-2010 H.Shirouzu		mainwin.h	Ver2.00"; */
+﻿/* static char *fastcopy_id = 
+	"@(#)Copyright (C) 2004-2012 H.Shirouzu		mainwin.h	Ver2.11"; */
 /* ========================================================================
 	Project  Name			: Fast Copy file and directory
 	Create					: 2004-09-15(Wed)
-	Update					: 2010-05-09(Sun)
+	Update					: 2012-06-18(Mon)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -28,14 +28,14 @@
 #endif
 #define FASTCOPY_CLASS		"fastcopy_class"
 
-#define WM_FASTCOPY_MSG				(WM_USER + 100)
-#define WM_FASTCOPY_NOTIFY			(WM_USER + 101)
-#define WM_FASTCOPY_HIDDEN			(WM_USER + 102)
-#define WM_FASTCOPY_RUNAS			(WM_USER + 103)
-#define WM_FASTCOPY_STATUS			(WM_USER + 104)
-#define WM_FASTCOPY_KEY				(WM_USER + 105)
-#define WM_FASTCOPY_PATHHISTCLEAR	(WM_USER + 106)
-#define WM_FASTCOPY_FILTERHISTCLEAR	(WM_USER + 107)
+#define WM_FASTCOPY_MSG				(WM_APP + 100)
+#define WM_FASTCOPY_NOTIFY			(WM_APP + 101)
+#define WM_FASTCOPY_HIDDEN			(WM_APP + 102)
+#define WM_FASTCOPY_RUNAS			(WM_APP + 103)
+#define WM_FASTCOPY_STATUS			(WM_APP + 104)
+#define WM_FASTCOPY_KEY				(WM_APP + 105)
+#define WM_FASTCOPY_PATHHISTCLEAR	(WM_APP + 106)
+#define WM_FASTCOPY_FILTERHISTCLEAR	(WM_APP + 107)
 
 #define FASTCOPY_TIMER		100
 #define FASTCOPY_NIM_ID		100
@@ -61,8 +61,8 @@ struct CopyInfo {
 };
 
 #define MAX_NORMAL_FASTCOPY_ICON	4
-#define FCNORMAL_ICON_INDEX			0
-#define FCWAIT_ICON_INDEX			MAX_NORMAL_FASTCOPY_ICON
+#define FCNORMAL_ICON_IDX			0
+#define FCWAIT_ICON_IDX				MAX_NORMAL_FASTCOPY_ICON
 #define MAX_FASTCOPY_ICON			MAX_NORMAL_FASTCOPY_ICON + 1
 
 #define SPEED_FULL		11
@@ -101,6 +101,7 @@ protected:
 	UINT		diskMode;
 	BOOL		isRegExp;
 	BOOL		isShellExt;
+	BOOL		isInstaller;
 	BOOL		isNetPlaceSrc;
 	int			skipEmptyDir;
 	int			forceStart;
@@ -150,7 +151,6 @@ protected:
 	UINT		curIconIndex;
 	BOOL		isDelay;
 
-	UINT		timerID;
 	SYSTEMTIME	startTm;
 	DWORD		endTick;
 
@@ -162,6 +162,7 @@ protected:
 
 // for detect autoslow status
 	DWORD		timerCnt;
+	DWORD		timerLast;
 	POINT		curPt;
 	HWND		curForeWnd;
 	DWORD		curPriority;
@@ -182,7 +183,7 @@ protected:
 protected:
 	BOOL	SetCopyModeList(void);
 	BOOL	IsForeground();
-	BOOL	MoveCenter(BOOL isShow);
+	BOOL	MoveCenter();
 	BOOL	SetupWindow();
 	BOOL	ExecCopy(DWORD exec_flags);
 	BOOL	ExecCopyCore(void);
@@ -228,6 +229,7 @@ public:
 	virtual BOOL	EvSysCommand(WPARAM uCmdType, POINTS pos);
 	virtual BOOL	EvSize(UINT fwSizeType, WORD nWidth, WORD nHeight);
 	virtual BOOL	EvDropFiles(HDROP hDrop);
+	virtual BOOL	EvActivateApp(BOOL fActivate, DWORD dwThreadID);
 	virtual BOOL	EventScroll(UINT uMsg, int nCode, int nPos, HWND scrollBar);
 /*
 	virtual BOOL	EvEndSession(BOOL nSession, BOOL nLogOut);
@@ -236,7 +238,7 @@ public:
 	virtual BOOL	EventButton(UINT uMsg, int nHitTest, POINTS pos);
 */
 	virtual BOOL	EventInitMenu(UINT uMsg, HMENU hMenu, UINT uPos, BOOL fSystemMenu);
-	virtual BOOL	EventActivateApp(BOOL fActivate, DWORD dwThreadID);
+	virtual BOOL	EventApp(UINT uMsg, WPARAM wParam, LPARAM lParam);
 	virtual BOOL	EventUser(UINT uMsg, WPARAM wParam, LPARAM lParam);
 	virtual BOOL	EventSystem(UINT uMsg, WPARAM wParam, LPARAM lParam);
 	virtual void	Show(int mode = SW_SHOWDEFAULT);
@@ -256,7 +258,7 @@ public:
 	BOOL	IsDestDropFiles(HDROP hDrop);
 	_int64	GetDateInfo(void *buf, BOOL is_end);
 	_int64	GetSizeInfo(void *buf);
-	BOOL	SetInfo(BOOL is_task_tray=FALSE, BOOL is_finish_status=FALSE);
+	BOOL	SetInfo(BOOL is_finish_status=FALSE);
 	enum	SetHistMode { SETHIST_LIST, SETHIST_EDIT, SETHIST_CLEAR };
 	void	SetComboBox(UINT item, void **history, SetHistMode mode);
 	void	SetPathHistory(SetHistMode mode, UINT item=0);

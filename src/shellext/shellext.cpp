@@ -1,9 +1,9 @@
-static char *shellext_id = 
-	"@(#)Copyright (C) 2005-2010 H.Shirouzu		shellext.cpp	Ver2.04";
+ï»¿static char *shellext_id = 
+	"@(#)Copyright (C) 2005-2012 H.Shirouzu		shellext.cpp	Ver2.10";
 /* ========================================================================
 	Project  Name			: Shell Extension for Fast Copy
 	Create					: 2005-01-23(Sun)
-	Update					: 2010-11-04(Thu)
+	Update					: 2012-06-17(Sun)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -22,7 +22,7 @@ static char *shellext_id =
 
 static ShellExtSystem	*SysObj = NULL;
 
-// ƒŒƒWƒXƒgƒŠ“o˜^ƒL[iRef: tortoise subversionj
+// ãƒ¬ã‚¸ã‚¹ãƒˆãƒªç™»éŒ²ã‚­ãƒ¼ï¼ˆRef: tortoise subversionï¼‰
 static char	*DllRegKeys[] = {
 	"*\\shellex\\ContextMenuHandlers",
 	"*\\shellex\\DragDropHandlers",
@@ -86,7 +86,7 @@ DWORD DbgLogW(WCHAR *fmt,...)
 	DWORD	len = wvsprintfW(wbuf, fmt, va);
 	va_end(va);
 
-	::WideCharToMultiByte(CP_ACP, 0, wbuf, len + 1, buf, sizeof(buf), 0, 0);
+	WtoA(wbuf, buf, sizeof(buf), len + 1);
 	return	DbgLog("%s", buf);
 }
 #else
@@ -95,10 +95,10 @@ DWORD DbgLogW(WCHAR *fmt,...)
 #endif
 
 /*=========================================================================
-  ƒNƒ‰ƒX F ShellExt
-  ŠT  —v F ƒVƒFƒ‹Šg’£ƒNƒ‰ƒX
-  à  –¾ F 
-  ’  ˆÓ F 
+  ã‚¯ãƒ©ã‚¹ ï¼š ShellExt
+  æ¦‚  è¦ ï¼š ã‚·ã‚§ãƒ«æ‹¡å¼µã‚¯ãƒ©ã‚¹
+  èª¬  æ˜ ï¼š 
+  æ³¨  æ„ ï¼š 
 =========================================================================*/
 ShellExt::ShellExt(void)
 {
@@ -272,7 +272,7 @@ STDMETHODIMP ShellExt::QueryContextMenu(HMENU hMenu, UINT iMenu, UINT cmdFirst, 
 		else mask_menu_flags &= ~SHEXT_RIGHT_PASTE;
 	}
 
-	// ƒƒjƒ…[ƒAƒCƒeƒ€‚Ì’Ç‰Á
+	// ãƒ¡ãƒ‹ãƒ¥ãƒ¼ã‚¢ã‚¤ãƒ†ãƒ ã®è¿½åŠ 
 	if (mask_menu_flags && srcArray.Num() >= ((mask_menu_flags & SHEXT_RIGHT_PASTE) ? 0 : 1)) {
 //		DbgLogW(L"flg=%x isCut=%d mask_menu_flags=%x src=%d dst=%d clip=%d\r\n", flg, isCut,
 //			mask_menu_flags, srcArray.Num(), dstArray.Num(), clipArray.Num());
@@ -362,7 +362,7 @@ STDMETHODIMP ShellExt::InvokeCommand(CMINVOKECOMMANDINFO *info)
 			PathArray	&dst = (isClip && dstArray.Num() == 0) ? srcArray : dstArray;
 			DWORD		len = src.GetMultiPathLen();
 			WCHAR		*buf = new WCHAR[max(len, MAX_PATH_EX)];
-			// dstArray ‚ª–³‚¢ê‡‚ÍA\0 ‚Ü‚Åo—Í
+			// dstArray ãŒç„¡ã„å ´åˆã¯ã€\0 ã¾ã§å‡ºåŠ›
 			len = src.GetMultiPath(buf, len) + (!is_dd && !isClip ? 1 : 0);
 
 			DbgLogW(L"send fastcopy src=%s\r\n", buf);
@@ -374,7 +374,7 @@ STDMETHODIMP ShellExt::InvokeCommand(CMINVOKECOMMANDINFO *info)
 				WCHAR	path[MAX_PATH_EX];
 				void	*dstPath = (isClip && ReadLinkV(dst.Path(0), path)) ? path : dst.Path(0);
 
-				MakePathV(dir, dstPath, EMPTY_STR_V);	// ––”ö‚É \\ ‚ğ•t—^
+				MakePathV(dir, dstPath, EMPTY_STR_V);	// æœ«å°¾ã« \\ ã‚’ä»˜ä¸
 				len = sprintfV(buf, FMT_TOSTR_V, dir) + 1;
 				DbgLogW(L"send fastcopy dst=%s\r\n", buf);
 				::WriteFile(hWrite, buf, len * CHAR_LEN_V, &len, 0);
@@ -432,10 +432,10 @@ STDMETHODIMP_(ULONG) ShellExt::Release()
 
 
 /*=========================================================================
-  ƒNƒ‰ƒX F ShellExtClassFactory
-  ŠT  —v F ƒVƒFƒ‹Šg’£ƒNƒ‰ƒX
-  à  –¾ F 
-  ’  ˆÓ F 
+  ã‚¯ãƒ©ã‚¹ ï¼š ShellExtClassFactory
+  æ¦‚  è¦ ï¼š ã‚·ã‚§ãƒ«æ‹¡å¼µã‚¯ãƒ©ã‚¹
+  èª¬  æ˜ ï¼š 
+  æ³¨  æ„ ï¼š 
 =========================================================================*/
 ShellExtClassFactory::ShellExtClassFactory(void)
 {
@@ -495,10 +495,10 @@ STDMETHODIMP_(ULONG) ShellExtClassFactory::Release()
 }
 
 /*=========================================================================
-  ŠÖ  ” F 
-  ŠT  —v F DLL Export ŠÖ”ŒQ
-  à  –¾ F 
-  ’  ˆÓ F 
+  é–¢  æ•° ï¼š 
+  æ¦‚  è¦ ï¼š DLL Export é–¢æ•°ç¾¤
+  èª¬  æ˜ ï¼š 
+  æ³¨  æ„ ï¼š 
 =========================================================================*/
 STDAPI DllCanUnloadNow(void)
 {
@@ -524,7 +524,7 @@ BOOL GetClsId(REFIID cls_name, char *cls_id, int size)
 	::StringFromIID(cls_name, &w_cls_id);
 
 	if (w_cls_id)
-		::WideCharToMultiByte(CP_ACP, 0, w_cls_id, -1, cls_id, size, NULL, NULL);
+		WtoA(w_cls_id, cls_id, size);
 
 	::CoGetMalloc(1, &im);
 	im->Free(w_cls_id);
@@ -539,7 +539,7 @@ STDAPI DllRegisterServer(void)
 
 	TShellExtRegistry	reg;
 
-// CLASSKEY “o˜^
+// CLASSKEY ç™»éŒ²
 	if (reg.CreateClsKey()) {
 		reg.SetStr(NULL, FASTCOPY);
 		if (reg.CreateKey("InProcServer32")) {
@@ -549,7 +549,7 @@ STDAPI DllRegisterServer(void)
 		}
 	}
 
-// ŠÖ˜A•t‚¯
+// é–¢é€£ä»˜ã‘
 	reg.ChangeTopKey(HKEY_CLASSES_ROOT);
 	for (int i=0; DllRegKeys[i]; i++) {
 		if (reg.CreateKey(DllRegKeys[i])) {
@@ -561,7 +561,7 @@ STDAPI DllRegisterServer(void)
 		}
 	}
 
-// NTŒn‚Ì’Ç‰Á
+// NTç³»ã®è¿½åŠ 
 	if (IsWinNT())  {
 		reg.ChangeTopKey(HKEY_LOCAL_MACHINE);
 		if (reg.OpenKey(REG_SHELL_APPROVED)) {
@@ -576,10 +576,10 @@ STDAPI DllUnregisterServer(void)
 {
 	TShellExtRegistry	reg;
 
-// CLASS_KEY íœ
+// CLASS_KEY å‰Šé™¤
 	reg.DeleteChildTree(reg.clsId);
 
-// ŠÖ˜A•t‚¯ íœ
+// é–¢é€£ä»˜ã‘ å‰Šé™¤
 	reg.ChangeTopKey(HKEY_CLASSES_ROOT);
 	for (int i=0; DllRegKeys[i]; i++) {
 		if (reg.OpenKey(DllRegKeys[i])) {
@@ -588,16 +588,16 @@ STDAPI DllUnregisterServer(void)
 		}
 	}
 
-// ‹Œƒo[ƒWƒ‡ƒ“—p (.lnk ê—p)
+// æ—§ãƒãƒ¼ã‚¸ãƒ§ãƒ³ç”¨ (.lnk å°‚ç”¨)
 	TShellExtRegistry	linkreg(CURRENT_SHEXTLNK_CLSID);
 	linkreg.DeleteChildTree(linkreg.clsId);
 
-// NTŒn‚Ì’Ç‰Á
+// NTç³»ã®è¿½åŠ 
 	if (IsWinNT())  {
 		reg.ChangeTopKey(HKEY_LOCAL_MACHINE);
 		if (reg.OpenKey(REG_SHELL_APPROVED)) {
 			reg.DeleteValue(reg.clsId);
-			reg.DeleteValue(linkreg.clsId);	// ‹Œƒo[ƒWƒ‡ƒ“—p (.lnk ê—p)
+			reg.DeleteValue(linkreg.clsId);	// æ—§ãƒãƒ¼ã‚¸ãƒ§ãƒ³ç”¨ (.lnk å°‚ç”¨)
 			reg.CloseKey();
 		}
 	}
@@ -606,10 +606,10 @@ STDAPI DllUnregisterServer(void)
 }
 
 /*=========================================================================
-  ŠÖ  ” F FastCopy —p export ŠÖ”
-  ŠT  —v F 
-  à  –¾ F 
-  ’  ˆÓ F 
+  é–¢  æ•° ï¼š FastCopy ç”¨ export é–¢æ•°
+  æ¦‚  è¦ ï¼š 
+  èª¬  æ˜ ï¼š 
+  æ³¨  æ„ ï¼š 
 =========================================================================*/
 BOOL WINAPI SetMenuFlags(int flags)
 {
@@ -658,7 +658,7 @@ BOOL WINAPI UpdateDll(void)
 	int		val = GetMenuFlagsCore(&is_present);
 
 	const GUID *oldiids[] = {
-		&CLSID_ShellExtID1, // ID1 ‚É‚Í lnkid ‚Í‚È‚¢
+		&CLSID_ShellExtID1, // ID1 ã«ã¯ lnkid ã¯ãªã„
 		&CLSID_ShellExtID2, &CLSID_ShellExtLinkID2,
 		&CLSID_ShellExtID3, &CLSID_ShellExtLinkID3,
 		&CLSID_ShellExtID4, &CLSID_ShellExtLinkID4,
@@ -778,7 +778,7 @@ ShellExtSystem::ShellExtSystem(HINSTANCE hI)
 	DllRefCnt = 0;
 	lastMenu  = 0;
 
-// GetSystemDefaultLCID() ‚ÉŠî‚Ã‚¢‚½ƒŠƒ\[ƒX•¶š—ñ‚ğ–‘O‚Éƒ[ƒh‚µ‚Ä‚¨‚­
+// GetSystemDefaultLCID() ã«åŸºã¥ã„ãŸãƒªã‚½ãƒ¼ã‚¹æ–‡å­—åˆ—ã‚’äº‹å‰ã«ãƒ­ãƒ¼ãƒ‰ã—ã¦ãŠã
 	LCID	curLcid = ::GetThreadLocale();
 	LCID	newLcid = ::GetSystemDefaultLCID();
 
@@ -820,10 +820,10 @@ ShellExtSystem::~ShellExtSystem()
 }
 
 /*=========================================================================
-  ŠÖ  ” F DllMain
-  ŠT  —v F 
-  à  –¾ F 
-  ’  ˆÓ F 
+  é–¢  æ•° ï¼š DllMain
+  æ¦‚  è¦ ï¼š 
+  èª¬  æ˜ ï¼š 
+  æ³¨  æ„ ï¼š 
 =========================================================================*/
 int APIENTRY DllMain(HINSTANCE hI, DWORD reason, PVOID)
 {

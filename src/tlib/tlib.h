@@ -1,9 +1,9 @@
-/* @(#)Copyright (C) 1996-2010 H.Shirouzu		tlib.h	Ver0.99 */
+﻿/* @(#)Copyright (C) 1996-2012 H.Shirouzu		tlib.h	Ver0.99 */
 /* ========================================================================
 	Project  Name			: Win32 Lightweight  Class Library Test
 	Module Name				: Main Header
 	Create					: 1996-06-01(Sat)
-	Update					: 2010-05-09(Mon)
+	Update					: 2012-04-02(Mon)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -35,7 +35,9 @@ char *vstrdup(const char *s);
 #endif
 
 /* for crypto api */
+#ifndef _WIN32_WINNT
 #define _WIN32_WINNT 0x0600
+#endif
 
 /* for new version VC */
 #if _MSC_VER >= 1400
@@ -44,6 +46,9 @@ char *vstrdup(const char *s);
 #define LONG_PTR LONG
 #endif
 #pragma warning ( disable : 4355 )
+
+#include <winsock2.h>
+#include <ws2tcpip.h>
 
 #include <windows.h>
 #include <windowsx.h>
@@ -54,6 +59,7 @@ char *vstrdup(const char *s);
 #include <regstr.h>
 #include <shlobj.h>
 #include <tchar.h>
+#include "tmisc.h"
 #include "tapi32ex.h"
 #include "tapi32v.h"
 //#include "tapi32u8.h"	 /* describe last line */
@@ -77,8 +83,10 @@ extern DWORD TWinVersion;	// define in tmisc.cpp
 #define IsWinNT()		(LOBYTE(LOWORD(TWinVersion)) >= 4 && TWinVersion < 0x80000000)
 #define IsWin2K()		(LOBYTE(LOWORD(TWinVersion)) >= 5 && TWinVersion < 0x80000000)
 #define IsWinXP()		((LOBYTE(LOWORD(TWinVersion)) >= 6 || LOBYTE(LOWORD(TWinVersion)) == 5 \
-							&& HIBYTE(LOWORD(TWinVersion)) >= 10) && TWinVersion < 0x80000000)
+							&& HIBYTE(LOWORD(TWinVersion)) >= 1) && TWinVersion < 0x80000000)
 #define IsWinVista()	(LOBYTE(LOWORD(TWinVersion)) >= 6 && TWinVersion < 0x80000000)
+#define IsWin7()		((LOBYTE(LOWORD(TWinVersion)) >= 7 || LOBYTE(LOWORD(TWinVersion)) == 6 \
+							&& HIBYTE(LOWORD(TWinVersion)) >= 1) && TWinVersion < 0x80000000)
 
 #define IsLang(lang)	(PRIMARYLANGID(LANGIDFROMLCID(GetThreadLocale())) == lang)
 
@@ -149,6 +157,22 @@ extern DWORD TWinVersion;	// define in tmisc.cpp
 #define PROCESS_MODE_BACKGROUND_END   0x00200000
 #endif
 
+#ifndef SM_XVIRTUALSCREEN
+#define SM_XVIRTUALSCREEN	76
+#define SM_YVIRTUALSCREEN	77
+#define SM_CXVIRTUALSCREEN	78
+#define SM_CYVIRTUALSCREEN	79
+#endif
+
+#ifndef SPI_GETFOREGROUNDLOCKTIMEOUT
+#define SPI_GETFOREGROUNDLOCKTIMEOUT 0x2000
+#define SPI_SETFOREGROUNDLOCKTIMEOUT 0x2001
+#endif
+
+#ifndef SPI_GETMESSAGEDURATION
+#define SPI_GETMESSAGEDURATION	0x2016
+#define SPI_SETMESSAGEDURATION	0x2017
+#endif
 
 #ifdef _WIN64
 #define SetClassLongA	SetClassLongPtrA
@@ -160,6 +184,7 @@ extern DWORD TWinVersion;	// define in tmisc.cpp
 #define GetWindowLongA	GetWindowLongPtrA
 #define GetWindowLongW	GetWindowLongPtrW
 #define GCL_HICON		GCLP_HICON
+#define GCL_HCURSOR		GCLP_HCURSOR
 #define GWL_WNDPROC		GWLP_WNDPROC
 #define DWL_MSGRESULT	DWLP_MSGRESULT
 #else
@@ -173,12 +198,44 @@ struct WINPOS {
 	int		cy;
 };
 
+#if _MSC_VER <= 1200
+typedef struct {
+  DWORD        bV5Size;
+  LONG         bV5Width;
+  LONG         bV5Height;
+  WORD         bV5Planes;
+  WORD         bV5BitCount;
+  DWORD        bV5Compression;
+  DWORD        bV5SizeImage;
+  LONG         bV5XPelsPerMeter;
+  LONG         bV5YPelsPerMeter;
+  DWORD        bV5ClrUsed;
+  DWORD        bV5ClrImportant;
+  DWORD        bV5RedMask;
+  DWORD        bV5GreenMask;
+  DWORD        bV5BlueMask;
+  DWORD        bV5AlphaMask;
+  DWORD        bV5CSType;
+  CIEXYZTRIPLE bV5Endpoints;
+  DWORD        bV5GammaRed;
+  DWORD        bV5GammaGreen;
+  DWORD        bV5GammaBlue;
+  DWORD        bV5Intent;
+  DWORD        bV5ProfileData;
+  DWORD        bV5ProfileSize;
+  DWORD        bV5Reserved;
+} BITMAPV5HEADER, *PBITMAPV5HEADER;
+#define CF_DIBV5 17
+#endif
+
 enum DlgItemFlags {
 	NONE_FIT	= 0x000,
 	LEFT_FIT	= 0x001,
-	RIGHT_FIT	= 0x002,
-	TOP_FIT		= 0x004,
-	BOTTOM_FIT	= 0x008,
+	HMID_FIT	= 0x002,
+	RIGHT_FIT	= 0x004,
+	TOP_FIT		= 0x008,
+	VMID_FIT	= 0x010,
+	BOTTOM_FIT	= 0x020,
 	FIT_SKIP	= 0x800,
 	X_FIT		= LEFT_FIT|RIGHT_FIT,
 	Y_FIT		= TOP_FIT|BOTTOM_FIT,
@@ -188,69 +245,13 @@ enum DlgItemFlags {
 struct DlgItem {
 	DWORD	flags;	// DlgItemFlags
 	HWND	hWnd;
+	UINT	id;
 	WINPOS	wpos;
 };
 
 // UTF8 string class
 enum StrMode { BY_UTF8, BY_MBCS };
 
-class THashTbl;
-
-class THashObj {
-public:
-	THashObj	*priorHash;
-	THashObj	*nextHash;
-	u_int		hashId;
-
-public:
-	THashObj() { priorHash = nextHash = NULL; hashId = 0; }
-	virtual ~THashObj() { if (priorHash && priorHash != this) UnlinkHash(); }
-
-	virtual BOOL LinkHash(THashObj *top);
-	virtual BOOL UnlinkHash();
-	friend THashTbl;
-};
-
-class THashTbl {
-protected:
-	THashObj	*hashTbl;
-	int			hashNum;
-	int			registerNum;
-	BOOL		isDeleteObj;
-
-	virtual BOOL	IsSameVal(THashObj *, const void *val) = 0;
-
-public:
-	THashTbl(int _hashNum=0, BOOL _isDeleteObj=TRUE);
-	virtual ~THashTbl();
-	virtual BOOL	Init(int _hashNum);
-	virtual void	UnInit();
-	virtual void	Register(THashObj *obj, u_int hash_id);
-	virtual void	UnRegister(THashObj *obj);
-	virtual THashObj *Search(const void *data, u_int hash_id);
-	virtual int		GetRegisterNum() { return registerNum; }
-//	virtual u_int	MakeHashId(const void *data) = 0;
-};
-
-/* for internal use start */
-struct TResHashObj : THashObj {
-	void	*val;
-	TResHashObj(UINT _resId, void *_val) { hashId = _resId; val = _val; }
-	~TResHashObj() { free(val); }
-	
-};
-
-class TResHash : public THashTbl {
-protected:
-	virtual BOOL IsSameVal(THashObj *obj, const void *val) {
-		return obj->hashId == *(u_int *)val;
-	}
-
-public:
-	TResHash(int _hashNum) : THashTbl(_hashNum) {}
-	TResHashObj	*Search(UINT resId) { return (TResHashObj *)THashTbl::Search(&resId, resId); }
-	void		Register(TResHashObj *obj) { THashTbl::Register(obj, obj->hashId); }
-};
 /* for internal use end */
 
 class TWin : public THashObj {
@@ -260,6 +261,7 @@ protected:
 	HACCEL			hAccel;
 	TWin			*parent;
 	BOOL			sleepBusy;	// for TWin::Sleep() only
+	BOOL			isUnicode;
 
 public:
 	TWin(TWin *_parent = NULL);
@@ -283,6 +285,7 @@ public:
 	virtual BOOL	EvSysCommand(WPARAM uCmdType, POINTS pos);
 	virtual BOOL	EvCreate(LPARAM lParam);
 	virtual BOOL	EvClose(void);
+	virtual BOOL	EvDestroy(void);
 	virtual BOOL	EvNcDestroy(void);
 	virtual BOOL	EvQueryEndSession(BOOL nSession, BOOL nLogOut);
 	virtual BOOL	EvEndSession(BOOL nSession, BOOL nLogOut);
@@ -290,6 +293,7 @@ public:
 	virtual BOOL	EvPaint(void);
 	virtual BOOL	EvNcPaint(HRGN hRgn);
 	virtual BOOL	EvSize(UINT fwSizeType, WORD nWidth, WORD nHeight);
+	virtual BOOL	EvMove(int xpos, int ypos);
 	virtual BOOL	EvShowWindow(BOOL fShow, int fnStatus);
 	virtual BOOL	EvGetMinMaxInfo(MINMAXINFO *info);
 	virtual BOOL	EvTimer(WPARAM timerID, TIMERPROC proc);
@@ -303,18 +307,24 @@ public:
 	virtual BOOL	EvNotify(UINT ctlID, NMHDR *pNmHdr);
 	virtual BOOL	EvContextMenu(HWND childWnd, POINTS pos);
 	virtual BOOL	EvHotKey(int hotKey);
+	virtual BOOL	EvActivateApp(BOOL fActivate, DWORD dwThreadID);
+	virtual BOOL	EvActivate(BOOL fActivate, DWORD fMinimized, HWND hActiveWnd);
+	virtual BOOL	EvChar(WCHAR code, LPARAM keyData);
+	virtual BOOL	EvWindowPosChanged(WINDOWPOS *pos);
+	virtual BOOL	EvWindowPosChanging(WINDOWPOS *pos);
 
-	virtual BOOL	EventActivateApp(BOOL fActivate, DWORD dwThreadID);
-	virtual BOOL	EventActivate(BOOL fActivate, DWORD fMinimized, HWND hActiveWnd);
 	virtual BOOL	EventScroll(UINT uMsg, int nCode, int nPos, HWND scrollBar);
 
 	virtual BOOL	EventButton(UINT uMsg, int nHitTest, POINTS pos);
 	virtual BOOL	EventKey(UINT uMsg, int nVirtKey, LONG lKeyData);
+	virtual BOOL	EventMenuLoop(UINT uMsg, BOOL fIsTrackPopupMenu);
 	virtual BOOL	EventInitMenu(UINT uMsg, HMENU hMenu, UINT uPos, BOOL fSystemMenu);
 	virtual BOOL	EventCtlColor(UINT uMsg, HDC hDcCtl, HWND hWndCtl, HBRUSH *result);
 	virtual BOOL	EventFocus(UINT uMsg, HWND focusWnd);
-	virtual BOOL	EventSystem(UINT uMsg, WPARAM wParam, LPARAM lParam);
+
+	virtual BOOL	EventApp(UINT uMsg, WPARAM wParam, LPARAM lParam);
 	virtual BOOL	EventUser(UINT uMsg, WPARAM wParam, LPARAM lParam);
+	virtual BOOL	EventSystem(UINT uMsg, WPARAM wParam, LPARAM lParam);
 
 	virtual UINT	GetDlgItemText(int ctlId, LPSTR buf, int len);
 	virtual UINT	GetDlgItemTextV(int ctlId, void *buf, int len);
@@ -332,7 +342,8 @@ public:
 
 	virtual	int		MessageBox(LPCSTR msg, LPCSTR title="msg", UINT style=MB_OK);
 	virtual	int		MessageBoxV(void *msg, void *title=EMPTY_STR_V, UINT style=MB_OK);
-	virtual	int		MessageBoxU8(char *msg, char *title="msg", UINT style=MB_OK);
+	virtual	int		MessageBoxW(LPCWSTR msg, LPCWSTR title=L"", UINT style=MB_OK);
+	virtual	int		MessageBoxU8(const char *msg, char *title="msg", UINT style=MB_OK);
 	virtual BOOL	BringWindowToTop(void);
 	virtual BOOL	SetForegroundWindow(void);
 	virtual BOOL	SetForceForegroundWindow(void);
@@ -357,6 +368,7 @@ public:
 	virtual BOOL	SetWindowTextU8(const char *text);
 	virtual int		GetWindowTextLengthV(void);
 	virtual int		GetWindowTextLengthU8(void);
+	virtual BOOL	InvalidateRect(const RECT *rc, BOOL fErase);
 
 	virtual LONG_PTR SetWindowLong(int index, LONG_PTR val);
 	virtual WORD	SetWindowWord(int index, WORD val);
@@ -365,6 +377,7 @@ public:
 	virtual TWin	*GetParent(void) { return parent; };
 	virtual void	SetParent(TWin *_parent) { parent = _parent; };
 	virtual BOOL	MoveWindow(int x, int y, int cx, int cy, int bRepaint);
+	virtual BOOL	FitMoveWindow(int x, int y);
 	virtual BOOL	Sleep(UINT mSec);
 	virtual BOOL	Idle(void);
 	virtual RECT	*Rect() { return &rect; }
@@ -421,6 +434,7 @@ public:
 	TSubClassCtl(TWin *_parent);
 
 	virtual	BOOL	PreProcMsg(MSG *msg);
+	virtual LRESULT WinProc(UINT uMsg, WPARAM wParam, LPARAM lParam);
 };
 
 BOOL TRegisterClass(LPCSTR class_name, UINT style=CS_DBLCLKS, HICON hIcon=0, HCURSOR hCursor=0,
@@ -476,6 +490,7 @@ public:
 	void	DelWin(TWin *win) { hash->UnRegister(win); }
 
 	static TApp *GetApp() { return tapp; }
+	static void Idle(DWORD timeout=0);
 	static HINSTANCE GetInstance() { return tapp->hI; }
 	static LRESULT CALLBACK WinProc(HWND hW, UINT uMsg, WPARAM wParam, LPARAM lParam);
 };
@@ -487,6 +502,7 @@ struct TListObj {
 class TList {
 protected:
 	TListObj	top;
+	int			num;
 
 public:
 	TList(void);
@@ -494,9 +510,12 @@ public:
 	void		AddObj(TListObj *obj);
 	void		DelObj(TListObj *obj);
 	TListObj	*TopObj(void);
+	TListObj	*EndObj(void);
 	TListObj	*NextObj(TListObj *obj);
+	TListObj	*PriorObj(TListObj *obj);
 	BOOL		IsEmpty() { return	top.next == &top; }
 	void		MoveList(TList *from_list);
+	int			Num() { return num; }
 };
 
 #define FREE_LIST	0
@@ -683,60 +702,6 @@ public:
 	const char *GetIniFileName(void) { return	ini_file; }
 };
 
-
-void InitInstanceForLoadStr(HINSTANCE hI);
-LPSTR GetLoadStrA(UINT resId, HINSTANCE hI=NULL);
-LPSTR GetLoadStrU8(UINT resId, HINSTANCE hI=NULL);
-LPWSTR GetLoadStrW(UINT resId, HINSTANCE hI=NULL);
-void TSetDefaultLCID(LCID id=0);
-HMODULE TLoadLibrary(LPSTR dllname);
-HMODULE TLoadLibraryV(void *dllname);
-int MakePath(char *dest, const char *dir, const char *file);
-int MakePathW(WCHAR *dest, const WCHAR *dir, const WCHAR *file);
-WCHAR lGetCharIncW(const WCHAR **str);
-WCHAR lGetCharIncA(const char **str);
-WCHAR lGetCharW(const WCHAR *str, int);
-WCHAR lGetCharA(const char *str, int);
-void lSetCharW(WCHAR *str, int offset, WCHAR ch);
-void lSetCharA(char *str, int offset, WCHAR ch);
-
-_int64 hex2ll(char *buf);
-int bin2hexstr(const BYTE *bindata, int len, char *buf);
-int bin2hexstrW(const BYTE *bindata, int len, WCHAR *buf);
-int bin2hexstr_bigendian(const BYTE *bin, int len, char *buf);
-BOOL hexstr2bin(const char *buf, BYTE *bindata, int maxlen, int *len);
-BOOL hexstr2bin_bigendian(const char *buf, BYTE *bindata, int maxlen, int *len);
-
-char *strdupNew(const char *_s);
-WCHAR *wcsdupNew(const WCHAR *_s);
-
-int strncmpi(const char *str1, const char *str2, int num);
-char *strncpyz(char *dest, const char *src, int num);
-
-BOOL TIsWow64();
-BOOL TRegEnableReflectionKey(HKEY hBase);
-BOOL TRegDisableReflectionKey(HKEY hBase);
-BOOL TWow64DisableWow64FsRedirection(void *oldval);
-BOOL TWow64RevertWow64FsRedirection(void *oldval);
-BOOL TIsUserAnAdmin();
-BOOL TIsEnableUAC();
-BOOL TSHGetSpecialFolderPathV(HWND, void *, int, BOOL);
-BOOL TIsVirtualizedDirV(void *path);
-BOOL TMakeVirtualStorePathV(void *org_path, void *buf);
-BOOL TSetPrivilege(LPSTR pszPrivilege, BOOL bEnable);
-BOOL TSetThreadLocale(int lcid);
-BOOL TChangeWindowMessageFilter(UINT msg, DWORD flg);
-
-BOOL InstallExceptionFilter(char *title, char *info);
-void Debug(char *fmt,...);
-void DebugW(WCHAR *fmt,...);
-void DebugU8(char *fmt,...);
-
-BOOL SymLinkV(void *src, void *dest, void *arg=L"");
-BOOL ReadLinkV(void *src, void *dest, void *arg=NULL);
-BOOL DeleteLinkV(void *path);
-BOOL GetParentDirV(const void *srcfile, void *dir);
-HWND ShowHelpV(HWND hOwner, void *help_dir, void *help_file, void *section=NULL);
 
 #include "tapi32u8.h"
 

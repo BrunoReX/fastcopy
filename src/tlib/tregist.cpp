@@ -1,10 +1,10 @@
-static char *tregist_id = 
-	"@(#)Copyright (C) 1996-2010 H.Shirouzu		tregist.cpp	Ver0.97";
+ï»¿static char *tregist_id = 
+	"@(#)Copyright (C) 1996-2011 H.Shirouzu		tregist.cpp	Ver0.99";
 /* ========================================================================
 	Project  Name			: Win32 Lightweight  Class Library Test
 	Module Name				: Registry Class
 	Create					: 1996-06-01(Sat)
-	Update					: 2010-05-09(Sun)
+	Update					: 2011-03-27(Sun)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -61,7 +61,7 @@ BOOL TRegistry::ChangeAppV(const void *company, const void *appName)
 	WCHAR	wbuf[100];
 	sprintfV(wbuf, IS_WINNT_V ? (void *)L"software\\%s" : (void *)"software\\%s", company);
 
-	if (appName != NULL && GetChar(appName, 0)) {
+	if (appName && GetChar(appName, 0)) {
 		sprintfV(wbuf + strlenV(wbuf), L"\\%s", appName);
 	}
 
@@ -156,7 +156,7 @@ BOOL TRegistry::GetLongV(const void *subKey, long *val)
 			== ERROR_SUCCESS) {
 		return	TRUE;
 	}
-// Ì‚ÌŒİŠ·«—p
+// æ˜”ã®äº’æ›æ€§ç”¨
 	WCHAR	wbuf[100];
 	long	size_byte = sizeof(wbuf);
 
@@ -332,8 +332,8 @@ BOOL TRegistry::EnumValueV(DWORD cnt, void *buf, int size, DWORD *type)
 }
 
 /*
-	subKey ‚ğw’è‚µ‚½ê‡‚Í subkey ‚ğŠÜ‚ŞƒL[ˆÈ‰º‚ğíœ
-	subkey ‚ª NULL ‚Ìê‡AƒJƒŒƒ“ƒg ‚Ì”z‰º‚ğíœ
+	subKey ã‚’æŒ‡å®šã—ãŸå ´åˆã¯ subkey ã‚’å«ã‚€ã‚­ãƒ¼ä»¥ä¸‹ã‚’å‰Šé™¤
+	subkey ãŒ NULL ã®å ´åˆã€ã‚«ãƒ¬ãƒ³ãƒˆ ã®é…ä¸‹ã‚’å‰Šé™¤
 */
 BOOL TRegistry::DeleteChildTree(LPCSTR subKey)
 {
@@ -357,7 +357,7 @@ BOOL TRegistry::DeleteChildTreeV(const void *subKey)
 		if (!(ret = DeleteChildTreeV(wbuf)))
 			break;
 	}
-	if (subKey != NULL)
+	if (subKey)
 	{
 		CloseKey();
 		ret = DeleteKeyV(subKey) ? ret : FALSE;

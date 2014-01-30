@@ -1,9 +1,9 @@
-/* static char *cfg_id = 
-	"@(#)Copyright (C) 2005-2010 H.Shirouzu		cfg.h	Ver2.04"; */
+﻿/* static char *cfg_id = 
+	"@(#)Copyright (C) 2005-2012 H.Shirouzu		cfg.h	Ver2.10"; */
 /* ========================================================================
 	Project  Name			: Fast/Force copy file and directory
 	Create					: 2005-01-23(Sun)
-	Update					: 2010-11-07(Sun)
+	Update					: 2012-06-17(Sun)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -90,7 +90,7 @@ struct FinAct {
 	int		shutdownTime;
 	DWORD	flags;
 	enum {	BUILTIN=0x1, ERR_SOUND=0x2, ERR_CMD=0x4, ERR_SHUTDOWN=0x8, WAIT_CMD=0x10,
-			FORCE=0x20, SUSPEND=0x40, HIBERNATE=0x80, SHUTDOWN=0x100 };
+			FORCE=0x20, SUSPEND=0x40, HIBERNATE=0x80, SHUTDOWN=0x100, NORMAL_CMD=0x200, };
 
 	void Init() {
 		memset(this, 0, sizeof(FinAct));
@@ -168,6 +168,8 @@ public:
 	_int64	allowContFsize;
 	BOOL	isReCreate;
 	BOOL	isExtendFilter;
+	int		taskbarMode; // 0: use tray, 1: use taskbar
+	int		infoSpan;	// information update timing (0:250msec, 1:500msec, 2:1000sec)
 	BOOL	isTopLevel;
 	BOOL	isErrLog;
 	BOOL	isUtf8Log;

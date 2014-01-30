@@ -1,10 +1,10 @@
-static char *tap32ex_id = 
-	"@(#)Copyright (C) 1996-2010 H.Shirouzu		tap32ex.cpp	Ver0.99";
+Ôªøstatic char *tap32ex_id = 
+	"@(#)Copyright (C) 1996-2011 H.Shirouzu		tap32ex.cpp	Ver0.99";
 /* ========================================================================
 	Project  Name			: Win32 Lightweight  Class Library Test
 	Module Name				: Application Frame Class
 	Create					: 1996-06-01(Sat)
-	Update					: 2010-05-09(Sun)
+	Update					: 2011-03-27(Sun)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -36,14 +36,14 @@ BOOL (WINAPI *pCryptHashData)(HCRYPTHASH, BYTE *, DWORD, DWORD);
 BOOL (WINAPI *pCryptSignHash)(HCRYPTHASH, DWORD, LPCSTR, DWORD, BYTE *, DWORD *);
 BOOL (WINAPI *pCryptGetHashParam)(HCRYPTHASH, DWORD, BYTE *, DWORD *, DWORD);
 BOOL (WINAPI *pCryptSetHashParam)(HCRYPTHASH, DWORD, const BYTE *, DWORD);
-
 BOOL (WINAPI *pCryptVerifySignature)(HCRYPTHASH, CONST BYTE *, DWORD, HCRYPTKEY, LPCSTR, DWORD);
-BOOL (WINAPI *pCryptProtectData)(DATA_BLOB* pDataIn, LPCWSTR szDataDescr,
-	DATA_BLOB* pOptionalEntropy, PVOID pvReserved, CRYPTPROTECT_PROMPTSTRUCT* pPromptStruct,
-	DWORD dwFlags, DATA_BLOB* pDataOut);
-BOOL (WINAPI *pCryptUnprotectData)(DATA_BLOB* pDataIn, LPWSTR* ppszDataDescr,
-	DATA_BLOB* pOptionalEntropy, PVOID pvReserved, CRYPTPROTECT_PROMPTSTRUCT* pPromptStruct,
-	DWORD dwFlags, DATA_BLOB* pDataOut);
+
+BOOL (WINAPI *pCryptProtectData)(DATA_BLOB*, LPCWSTR, DATA_BLOB*, PVOID,
+		CRYPTPROTECT_PROMPTSTRUCT*, DWORD, DATA_BLOB*);
+BOOL (WINAPI *pCryptUnprotectData)(DATA_BLOB*, LPWSTR*, DATA_BLOB*, PVOID,
+		CRYPTPROTECT_PROMPTSTRUCT*, DWORD, DATA_BLOB*);
+BOOL (WINAPI *pCryptStringToBinary) (LPCTSTR, DWORD, DWORD, BYTE *, DWORD *, DWORD *, DWORD *);
+BOOL (WINAPI *pCryptBinaryToString)(const BYTE *, DWORD, DWORD, LPTSTR , DWORD *);
 
 NTSTATUS (WINAPI *pNtQueryInformationFile)(HANDLE FileHandle, PIO_STATUS_BLOCK IoStatusBlock,
 	PVOID FileInformation, ULONG Length, FILE_INFORMATION_CLASS FileInformationClass);
@@ -100,16 +100,19 @@ BOOL TLibInit_Crypt32()
 {
 	HINSTANCE	cryptdll = ::LoadLibrary("crypt32.dll");
 
-	pCryptProtectData =
-		(BOOL (WINAPI *)(DATA_BLOB* pDataIn, LPCWSTR szDataDescr, DATA_BLOB* pOptionalEntropy,
-		PVOID pvReserved, CRYPTPROTECT_PROMPTSTRUCT* pPromptStruct, DWORD dwFlags,
-		DATA_BLOB* pDataOut))
+	pCryptProtectData = (BOOL (WINAPI *)(DATA_BLOB*, LPCWSTR, DATA_BLOB*,
+		PVOID, CRYPTPROTECT_PROMPTSTRUCT*, DWORD, DATA_BLOB*))
 		::GetProcAddress(cryptdll, "CryptProtectData");
-	pCryptUnprotectData =
-		(BOOL (WINAPI *)(DATA_BLOB* pDataIn, LPWSTR* ppszDataDescr, DATA_BLOB* pOptionalEntropy,
-		PVOID pvReserved, CRYPTPROTECT_PROMPTSTRUCT* pPromptStruct, DWORD dwFlags,
-		DATA_BLOB* pDataOut))
+	pCryptUnprotectData = (BOOL (WINAPI *)(DATA_BLOB*, LPWSTR*, DATA_BLOB*,
+		PVOID, CRYPTPROTECT_PROMPTSTRUCT*, DWORD, DATA_BLOB*))
 		::GetProcAddress(cryptdll, "CryptUnprotectData");
+
+	pCryptStringToBinary =
+		(BOOL (WINAPI *)(LPCTSTR, DWORD, DWORD, BYTE *, DWORD *, DWORD *, DWORD *))
+		::GetProcAddress(cryptdll, "CryptStringToBinaryA");
+	pCryptBinaryToString =
+		(BOOL (WINAPI *)(const BYTE *, DWORD, DWORD, LPTSTR , DWORD *))
+		::GetProcAddress(cryptdll, "CryptBinaryToStringA");
 
 	return	TRUE;
 }
@@ -176,6 +179,14 @@ BOOL TDigest::GetVal(void *data)
 	DWORD	size = GetDigestSize();
 
 	return	pCryptGetHashParam(hHash, HP_HASHVAL, (BYTE *)data, &size, 0);
+}
+
+BOOL TDigest::GetRevVal(void *data)
+{
+	if (!GetVal(data)) return FALSE;
+
+	rev_order((BYTE *)data, GetDigestSize());
+	return	TRUE;
 }
 
 void TDigest::GetEmptyVal(void *data)
@@ -416,7 +427,7 @@ int rand_data2[THASH_RAND_NUM2] = {
 };
 
 /*
-	éËî≤Ç´ÉnÉbÉVÉÖê∂ê¨ÉãÅ[É`Éì
+	ÊâãÊäú„Åç„Éè„ÉÉ„Ç∑„É•ÁîüÊàê„É´„Éº„ÉÅ„É≥
 */
 u_int MakeHash(const void *data, int size, DWORD iv)
 {

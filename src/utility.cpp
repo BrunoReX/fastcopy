@@ -1,9 +1,9 @@
-static char *utility_id = 
-	"@(#)Copyright (C) 2004-2010 H.Shirouzu		utility.cpp	ver2.03";
+ï»¿static char *utility_id = 
+	"@(#)Copyright (C) 2004-2012 H.Shirouzu		utility.cpp	ver2.10";
 /* ========================================================================
 	Project  Name			: general routine
 	Create					: 2004-09-15(Wed)
-	Update					: 2010-09-12(Sun)
+	Update					: 2012-06-17(Sun)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -13,172 +13,10 @@ static char *utility_id =
 #include "utility.h"
 
 /*=========================================================================
-  ƒNƒ‰ƒX F Condition
-  ŠT  —v F ğŒ•Ï”ƒNƒ‰ƒX
-  à  –¾ F 
-  ’  ˆÓ F 
-=========================================================================*/
-Condition::Condition(void)
-{
-	hEvents = NULL;
-}
-
-Condition::~Condition(void)
-{
-	UnInitialize();
-}
-
-BOOL Condition::Initialize(int _max_threads)
-{
-	UnInitialize();
-
-	max_threads = _max_threads;
-	waitEvents = new WaitEvent [max_threads];
-	hEvents = new HANDLE [max_threads];
-	for (int wait_id=0; wait_id < max_threads; wait_id++) {
-		if (!(hEvents[wait_id] = ::CreateEvent(0, FALSE, FALSE, NULL)))
-			return	FALSE;
-		waitEvents[wait_id] = CLEAR_EVENT;
-	}
-	::InitializeCriticalSection(&cs);
-	waitCnt = 0;
-	return	TRUE;
-}
-
-void Condition::UnInitialize(void)
-{
-	if (hEvents) {
-		while (--max_threads >= 0)
-			::CloseHandle(hEvents[max_threads]);
-		delete [] hEvents;
-		delete [] waitEvents;
-		hEvents = NULL;
-		waitEvents = NULL;
-		::DeleteCriticalSection(&cs);
-	}
-}
-
-BOOL Condition::Wait(DWORD timeout)
-{
-	int		wait_id = 0;
-
-	for (wait_id=0; wait_id < max_threads && waitEvents[wait_id] != CLEAR_EVENT; wait_id++)
-		;
-	if (wait_id == max_threads) {	// ’Êí‚Í‚ ‚è‚¦‚È‚¢
-		MessageBox(0, "Detect too many wait threads", "TLib", MB_OK);
-		return	FALSE;
-	}
-	waitEvents[wait_id] = WAIT_EVENT;
-	waitCnt++;
-	UnLock();
-
-	DWORD	status = ::WaitForSingleObject(hEvents[wait_id], timeout);
-
-	Lock();
-	--waitCnt;
-	waitEvents[wait_id] = CLEAR_EVENT;
-
-	return	status == WAIT_TIMEOUT ? FALSE : TRUE;
-}
-
-void Condition::Notify(void)	// Œ»ó‚Å‚ÍA–°‚Á‚Ä‚¢‚éƒXƒŒƒbƒh‘Sˆõ‚ğ‹N‚±‚·
-{
-	if (waitCnt > 0) {
-		for (int wait_id=0, done_cnt=0; wait_id < max_threads; wait_id++) {
-			if (waitEvents[wait_id] == WAIT_EVENT) {
-				::SetEvent(hEvents[wait_id]);
-				waitEvents[wait_id] = DONE_EVENT;
-				if (++done_cnt >= waitCnt)
-					break;
-			}
-		}
-	}
-}
-
-/*=========================================================================
-  ƒNƒ‰ƒX F VBuf
-  ŠT  —v F ‰¼‘zƒƒ‚ƒŠŠÇ—ƒNƒ‰ƒX
-  à  –¾ F 
-  ’  ˆÓ F 
-=========================================================================*/
-VBuf::VBuf(int _size, int _max_size, VBuf *_borrowBuf)
-{
-	Init();
-
-	if (_size || _max_size) AllocBuf(_size, _max_size, _borrowBuf);
-}
-
-VBuf::~VBuf()
-{
-	if (buf)
-		FreeBuf();
-}
-
-void VBuf::Init(void)
-{
-	buf = NULL;
-	borrowBuf = NULL;
-	size = usedSize = maxSize = 0;
-}
-
-BOOL VBuf::AllocBuf(int _size, int _max_size, VBuf *_borrowBuf)
-{
-	if (_max_size == 0)
-		_max_size = _size;
-	maxSize = _max_size;
-	borrowBuf = _borrowBuf;
-
-	if (borrowBuf) {
-		if (!borrowBuf->Buf() || borrowBuf->MaxSize() < borrowBuf->UsedSize() + maxSize)
-			return	FALSE;
-		buf = borrowBuf->Buf() + borrowBuf->UsedSize();
-		borrowBuf->AddUsedSize(maxSize + PAGE_SIZE);
-	}
-	else {
-	// 1page •ª‚¾‚¯—]Œv‚ÉŠm•Ûibuffer over flow ŒŸo—pj
-		if (!(buf = (BYTE *)::VirtualAlloc(NULL, maxSize + PAGE_SIZE, MEM_RESERVE, PAGE_READWRITE))) {
-			Init();
-			return	FALSE;
-		}
-	}
-	return	Grow(_size);
-}
-
-BOOL VBuf::LockBuf(void)
-{
-	return	::VirtualLock(buf, size);
-}
-
-void VBuf::FreeBuf(void)
-{
-	if (buf) {
-		if (borrowBuf) {
-			::VirtualFree(buf, maxSize + PAGE_SIZE, MEM_DECOMMIT);
-		}
-		else {
-			::VirtualFree(buf, 0, MEM_RELEASE);
-		}
-	}
-	Init();
-}
-
-BOOL VBuf::Grow(int grow_size)
-{
-	if (size + grow_size > maxSize)
-		return	FALSE;
-
-	if (grow_size && !::VirtualAlloc(buf + size, grow_size, MEM_COMMIT, PAGE_READWRITE))
-		return	FALSE;
-
-	size += grow_size;
-	return	TRUE;
-}
-
-/*=========================================================================
-	Šg’£ strtok()
-		"" ‚Éo‚­‚í‚·‚ÆA"" ‚Ì’†g‚ğæ‚èo‚·
-		token ‚Ì‘OŒã‚É‹ó”’‚ª‚ ‚ê‚Îæ‚èœ‚­
-		‚»‚êˆÈŠO‚ÍAstrtok_r() ‚Æ“¯‚¶
+	æ‹¡å¼µ strtok()
+		"" ã«å‡ºãã‚ã™ã¨ã€"" ã®ä¸­èº«ã‚’å–ã‚Šå‡ºã™
+		token ã®å‰å¾Œã«ç©ºç™½ãŒã‚ã‚Œã°å–ã‚Šé™¤ã
+		ãã‚Œä»¥å¤–ã¯ã€strtok_r() ã¨åŒã˜
 =========================================================================*/
 void *strtok_pathV(void *str, const void *sep, void **p, BOOL remove_quote)
 {
@@ -192,18 +30,18 @@ void *strtok_pathV(void *str, const void *sep, void **p, BOOL remove_quote)
 	if (!*p)
 		return	NULL;
 
-	// “ª‚¾‚µ
+	// é ­ã ã—
 	while (GetChar(str, 0) && (strchrV(sep, GetChar(str, 0)) || GetChar(str, 0) == ' '))
 		str = MakeAddr(str, 1);
 	if (GetChar(str, 0) == 0)
 		return	NULL;
 
-	// I’[ŒŸo
+	// çµ‚ç«¯æ¤œå‡º
 	void	*in = str, *out = str;
 	for ( ; GetChar(in, 0); in = MakeAddr(in, 1)) {
 		BOOL	is_set = FALSE;
 
-		if (sep == org_sep) {	// ’Êí mode
+		if (sep == org_sep) {	// é€šå¸¸ mode
 			if (strchrV(sep, GetChar(in, 0))) {
 				break;
 			}
@@ -211,7 +49,7 @@ void *strtok_pathV(void *str, const void *sep, void **p, BOOL remove_quote)
 				if (!remove_quote) {
 					is_set = TRUE;
 				}
-				sep = quote;	// quote mode ‚É‘JˆÚ
+				sep = quote;	// quote mode ã«é·ç§»
 			}
 			else {
 				is_set = TRUE;
@@ -219,7 +57,7 @@ void *strtok_pathV(void *str, const void *sep, void **p, BOOL remove_quote)
 		}
 		else {					// quote mode
 			if (GetChar(in, 0) == '"') {
-				sep = org_sep;	// ’Êí mode ‚É‘JˆÚ
+				sep = org_sep;	// é€šå¸¸ mode ã«é·ç§»
 				if (!remove_quote) {
 					is_set = TRUE;
 				}
@@ -236,7 +74,7 @@ void *strtok_pathV(void *str, const void *sep, void **p, BOOL remove_quote)
 	*p = GetChar(in, 0) ? MakeAddr(in, 1) : NULL;
 	SetChar(out, 0, 0);
 
-	// ––”ö‚Ì‹ó”’‚ğæ‚èœ‚­
+	// æœ«å°¾ã®ç©ºç™½ã‚’å–ã‚Šé™¤ã
 	for (out = MakeAddr(out, -1); out >= str && GetChar(out, 0) == ' '; out = MakeAddr(out, -1))
 		SetChar(out, 0, 0);
 
@@ -244,8 +82,8 @@ void *strtok_pathV(void *str, const void *sep, void **p, BOOL remove_quote)
 }
 
 /*=========================================================================
-	ƒRƒ}ƒ“ƒhƒ‰ƒCƒ“‰ğÍiCommandLineToArgvW API ‚Ì ANSI”Åj
-		CommandLineToArgvW() ‚Æ“¯‚¶‚­A•Ô‚è’l‚ÌŠJ•ú‚ÍŒÄ‚ÑŒ³‚Å‚·‚é‚±‚Æ
+	ã‚³ãƒãƒ³ãƒ‰ãƒ©ã‚¤ãƒ³è§£æï¼ˆCommandLineToArgvW API ã® ANSIç‰ˆï¼‰
+		CommandLineToArgvW() ã¨åŒã˜ãã€è¿”ã‚Šå€¤ã®é–‹æ”¾ã¯å‘¼ã³å…ƒã§ã™ã‚‹ã“ã¨
 =========================================================================*/
 void **CommandLineToArgvV(void *cmdLine, int *_argc)
 {
@@ -499,7 +337,7 @@ BOOL DriveMng::SetDriveID(int drvLetter)
 	int			size, idx = LetterToIndex(drvLetter);
 	DWORD		val = 0;
 
-// NT Œn
+// NT ç³»
 	if (IS_WINNT_V) {
 		if (reg.OpenKey(MOUNTED_DEVICES)) {
 			::sprintf(reg_path, FMT_DOSDEVICES, drvLetter);
@@ -519,7 +357,7 @@ BOOL DriveMng::SetDriveID(int drvLetter)
 		return	RegisterDriveID(idx, &val, 1);
 	}
 
-// 95 Œn
+// 95 ç³»
 	TRegistry	dynReg(HKEY_DYN_DATA);
 	char		dyn_path[MAX_PATH];
 	int			no_id_cnt = 0;
@@ -544,7 +382,7 @@ BOOL DriveMng::SetDriveID(int drvLetter)
 					val = 0;
 					if (reg.GetStr(DRIVE_LETTERS, (char *)buf, sizeof(buf))) {
 						if (*buf == 0)
-							no_id_cnt++;	// format ŒãAreboot ‚·‚é‚Ü‚Å registry ‚É–¢”½‰f‚ç‚µ‚¢
+							no_id_cnt++;	// format å¾Œã€reboot ã™ã‚‹ã¾ã§ registry ã«æœªåæ˜ ã‚‰ã—ã„
 						for (int l=0; buf[l]; l++) {
 							if (drvLetter == buf[l]) {
 								val = 1;
@@ -600,7 +438,7 @@ BOOL DriveMng::IsSameDrive(int drvLetter1, int drvLetter2)
 		&&	(IS_WINNT_V ? drvID[idx1].len != 1 : (drvID[idx1].len == 0 && noIdCnt == 1));
 }
 
-// ƒ[ƒh’PˆÊ‚Å‚Í‚È‚­A•¶š’PˆÊ‚ÅÜ‚è•Ô‚·‚½‚ß‚Ì EDIT Control —p CallBack
+// ãƒ¯ãƒ¼ãƒ‰å˜ä½ã§ã¯ãªãã€æ–‡å­—å˜ä½ã§æŠ˜ã‚Šè¿”ã™ãŸã‚ã® EDIT Control ç”¨ CallBack
 int CALLBACK EditWordBreakProc(LPTSTR str, int cur, int len, int action)
 {
 	switch (action) {
@@ -616,7 +454,7 @@ int CALLBACK EditWordBreakProc(LPTSTR str, int cur, int len, int action)
 
 BOOL GetRootDirV(const void *path, void *root_dir)
 {
-	if (GetChar(path, 0) == '\\') {	// "\\server\volname\" 4‚Â–Ú‚Ì \ ‚ğŒ©‚Â‚¯‚é
+	if (GetChar(path, 0) == '\\') {	// "\\server\volname\" 4ã¤ç›®ã® \ ã‚’è¦‹ã¤ã‘ã‚‹
 		DWORD	ch;
 		int		backslash_cnt = 0, offset;
 
@@ -625,11 +463,11 @@ BOOL GetRootDirV(const void *path, void *root_dir)
 				backslash_cnt++;
 		}
 		memcpy(root_dir, path, offset * CHAR_LEN_V);
-		if (backslash_cnt < 4)					// 4‚Â‚Ì \ ‚ª‚È‚¢ê‡‚ÍA––”ö‚É \ ‚ğ•t—^
-			SetChar(root_dir, offset++, '\\');	// i\\server\volume ‚È‚Çj
+		if (backslash_cnt < 4)					// 4ã¤ã® \ ãŒãªã„å ´åˆã¯ã€æœ«å°¾ã« \ ã‚’ä»˜ä¸
+			SetChar(root_dir, offset++, '\\');	// ï¼ˆ\\server\volume ãªã©ï¼‰
 		SetChar(root_dir, offset, 0);	// NULL terminate
 	}
-	else {	// "C:\" “™
+	else {	// "C:\" ç­‰
 		memcpy(root_dir, path, 3 * CHAR_LEN_V);
 		SetChar(root_dir, 3, 0);	// NULL terminate
 	}
@@ -637,36 +475,35 @@ BOOL GetRootDirV(const void *path, void *root_dir)
 }
 
 /*
-	ƒlƒbƒgƒ[ƒNƒvƒŒ[ƒX‚ğ UNC path ‚É•ÏŠ· (src == dst ‰Âj
+	ãƒãƒƒãƒˆãƒ¯ãƒ¼ã‚¯ãƒ—ãƒ¬ãƒ¼ã‚¹ã‚’ UNC path ã«å¤‰æ› (src == dst å¯ï¼‰
 */
 
 BOOL NetPlaceConvertV(void *src, void *dst)
 {
-	IShellLink		*shellLink;		// VC4 ‚É‚Í IShellLink ANSI ”Å‚µ‚©’è‹`‚ª‚È‚¢‚½‚ß‚Ìb’èˆ’u
-	IPersistFile	*persistFile;	// iÀÛ‚Í NTŒn‚Å‚Í IShellLinkW ‚ğŒÄ‚Ño‚µj
+	IShellLink		*shellLink;		// VC4 ã«ã¯ IShellLink ANSI ç‰ˆã—ã‹å®šç¾©ãŒãªã„ãŸã‚ã®æš«å®šå‡¦ç½®
+	IPersistFile	*persistFile;	// ï¼ˆå®Ÿéš›ã¯ NTç³»ã§ã¯ IShellLinkW ã‚’å‘¼ã³å‡ºã—ï¼‰
 	WCHAR	wSrcBuf[MAX_PATH], wDstBuf[MAX_PATH];
 	WCHAR	*wSrc = IS_WINNT_V ? (WCHAR *)src : wSrcBuf;
 	WCHAR	*wDst = IS_WINNT_V ? wDstBuf : (WCHAR *)dst;
 	BOOL	ret = FALSE;
 	DWORD	attr, attr_mask = FILE_ATTRIBUTE_DIRECTORY|FILE_ATTRIBUTE_READONLY;
 
-	if (SHGetPathFromIDListV == NULL)	// NT4.0 Œn‚Í–³‹
+	if (SHGetPathFromIDListV == NULL)	// NT4.0 ç³»ã¯ç„¡è¦–
 		return	FALSE;
 
 	if ((attr = GetFileAttributesV(src)) == 0xffffffff || (attr & attr_mask) != attr_mask)
-		return	FALSE;	// ƒfƒBƒŒƒNƒgƒŠ‚©‚Âronly ‚Å‚È‚¢‚à‚Ì‚ÍŠÖŒW‚È‚¢
+		return	FALSE;	// ãƒ‡ã‚£ãƒ¬ã‚¯ãƒˆãƒªã‹ã¤ronly ã§ãªã„ã‚‚ã®ã¯é–¢ä¿‚ãªã„
 
 	if (SUCCEEDED(CoCreateInstance(CLSID_ShellLink, NULL, CLSCTX_INPROC_SERVER,
 				  IID_IShellLinkV, (void **)&shellLink))) {
 		if (SUCCEEDED(shellLink->QueryInterface(IID_IPersistFile, (void **)&persistFile))) {
 			if (!IS_WINNT_V)
-				::MultiByteToWideChar(CP_ACP, 0, (char *)src, -1, wSrc, MAX_PATH);
+				AtoW((char *)src, wSrc, MAX_PATH);
 
 			if (SUCCEEDED(persistFile->Load(wSrc, STGM_READ))) {
 				if (SUCCEEDED(shellLink->GetPath((char *)wDst, MAX_PATH, 0, SLGP_UNCPRIORITY))) {
 					if (!IS_WINNT_V)
-						::WideCharToMultiByte(CP_ACP, 0, wDst, -1, (char *)wDstBuf,
-							MAX_PATH, 0, 0);
+						WtoA(wDst, (char *)wDstBuf, MAX_PATH);
 					MakePathV(dst, wDstBuf, EMPTY_STR_V);
 					ret = TRUE;
 				}

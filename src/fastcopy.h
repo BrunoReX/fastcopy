@@ -1,9 +1,9 @@
-/* static char *fastcopy_id = 
-	"@(#)Copyright (C) 2004-2010 H.Shirouzu		fastcopy.h	Ver2.04"; */
+ï»¿/* static char *fastcopy_id = 
+	"@(#)Copyright (C) 2004-2012 H.Shirouzu		fastcopy.h	Ver2.10"; */
 /* ========================================================================
 	Project  Name			: Fast Copy file and directory
 	Create					: 2004-09-15(Wed)
-	Update					: 2010-11-07(Sun)
+	Update					: 2012-06-17(Sun)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -25,6 +25,7 @@
 #define PATH_UNC_PREFIX_LEN		7
 
 #define FASTCOPY			"FastCopy"
+#define FASTCOPYW			L"FastCopy"
 
 #define MAX_BASE_BUF		( 512 * 1024 * 1024)
 #define MIN_BASE_BUF		(  64 * 1024 * 1024)
@@ -111,20 +112,20 @@ struct TransInfo {
 struct FileStat {
 	_int64		fileID;
 	HANDLE		hFile;
-	BYTE		*upperName;		// cFileName I’[+1‚ğw‚·
+	BYTE		*upperName;		// cFileName çµ‚ç«¯+1ã‚’æŒ‡ã™
 	FILETIME	ftCreationTime;
 	FILETIME	ftLastAccessTime;
 	FILETIME	ftLastWriteTime;
-	DWORD		nFileSizeLow;	// WIN32_FIND_DATA ‚Ì nFileSizeLow/High
-	DWORD		nFileSizeHigh;	// ‚Æ‚Í‹t‡i_int64 —pj
+	DWORD		nFileSizeLow;	// WIN32_FIND_DATA ã® nFileSizeLow/High
+	DWORD		nFileSizeHigh;	// ã¨ã¯é€†é †ï¼ˆ_int64 ç”¨ï¼‰
 	DWORD		dwFileAttributes;	// 0 == ALTSTREAM
 	DWORD		lastError;
 	int			renameCount;
 	BOOL		isExists;
 	BOOL		isCaseChanged;
 	int			size;
-	int			minSize;		// upperName •ª‚ğŠÜ‚ß‚È‚¢
-	DWORD		hashVal;		// upperName ‚Ì hash’l
+	int			minSize;		// upperName åˆ†ã‚’å«ã‚ãªã„
+	DWORD		hashVal;		// upperName ã® hashå€¤
 
 	// for hashTable
 	FileStat	*next;
@@ -262,20 +263,20 @@ public:
 		int		maxTransSize;	// (I/ )
 		int		maxAttrSize;	// (I/ )
 		int		maxDirSize;		// (I/ )
-		int		nbMinSizeNtfs;	// (I/ ) FILE_FLAG_NO_BUFFERING ‚ÅƒI[ƒvƒ“‚·‚éÅ¬ƒTƒCƒY
-		int		nbMinSizeFat;	// (I/ ) FILE_FLAG_NO_BUFFERING ‚ÅƒI[ƒvƒ“‚·‚éÅ¬ƒTƒCƒY (FAT—p)
-		int		maxLinkHash;	// (I/ ) Dest Hardlink —p hash table ƒTƒCƒY
+		int		nbMinSizeNtfs;	// (I/ ) FILE_FLAG_NO_BUFFERING ã§ã‚ªãƒ¼ãƒ—ãƒ³ã™ã‚‹æœ€å°ã‚µã‚¤ã‚º
+		int		nbMinSizeFat;	// (I/ ) FILE_FLAG_NO_BUFFERING ã§ã‚ªãƒ¼ãƒ—ãƒ³ã™ã‚‹æœ€å°ã‚µã‚¤ã‚º (FATç”¨)
+		int		maxLinkHash;	// (I/ ) Dest Hardlink ç”¨ hash table ã‚µã‚¤ã‚º
 		_int64	allowContFsize;	// (I/ )
 		HWND	hNotifyWnd;		// (I/ )
 		UINT	uNotifyMsg;		// (I/ )
 		int		lcid;			// (I/ )
-		_int64	fromDateFilter;	// (I/ ) ÅŒÃ“úƒtƒBƒ‹ƒ^
-		_int64	toDateFilter;	// (I/ ) ÅV“úƒtƒBƒ‹ƒ^
-		_int64	minSizeFilter;	// (I/ ) Å’áƒTƒCƒYƒtƒBƒ‹ƒ^
-		_int64	maxSizeFilter;	// (I/ ) Å‘åƒTƒCƒYƒtƒBƒ‹ƒ^
-		char	driveMap[64];	// (I/ ) •¨—ƒhƒ‰ƒCƒuƒ}ƒbƒv
-		BOOL	isRenameMode;	// ( /O) ...u•¡»‚µ‚Ü‚·vƒ_ƒCƒAƒƒOƒ^ƒCƒgƒ‹—pî•ñib’èj
-	};							//			 «—ˆ“I‚ÉAî•ñ‚ª‘‚¦‚ê‚ÎAƒƒ“ƒo‚©‚çØ‚è—£‚µ
+		_int64	fromDateFilter;	// (I/ ) æœ€å¤æ—¥æ™‚ãƒ•ã‚£ãƒ«ã‚¿
+		_int64	toDateFilter;	// (I/ ) æœ€æ–°æ—¥æ™‚ãƒ•ã‚£ãƒ«ã‚¿
+		_int64	minSizeFilter;	// (I/ ) æœ€ä½ã‚µã‚¤ã‚ºãƒ•ã‚£ãƒ«ã‚¿
+		_int64	maxSizeFilter;	// (I/ ) æœ€å¤§ã‚µã‚¤ã‚ºãƒ•ã‚£ãƒ«ã‚¿
+		char	driveMap[64];	// (I/ ) ç‰©ç†ãƒ‰ãƒ©ã‚¤ãƒ–ãƒãƒƒãƒ—
+		BOOL	isRenameMode;	// ( /O) ...ã€Œè¤‡è£½ã—ã¾ã™ã€ãƒ€ã‚¤ã‚¢ãƒ­ã‚°ã‚¿ã‚¤ãƒˆãƒ«ç”¨æƒ…å ±ï¼ˆæš«å®šï¼‰
+	};							//			 å°†æ¥çš„ã«ã€æƒ…å ±ãŒå¢—ãˆã‚Œã°ã€ãƒ¡ãƒ³ãƒã‹ã‚‰åˆ‡ã‚Šé›¢ã—
 
 	enum Notify { END_NOTIFY, CONFIRM_NOTIFY, RENAME_NOTIFY, LISTING_NOTIFY };
 	struct Confirm {
@@ -326,7 +327,7 @@ protected:
 		int			bufSize;
 		BYTE		*buf;
 		int			reqSize;
-		FileStat	stat;	// ‰Â•Ï’·
+		FileStat	stat;	// å¯å¤‰é•·
 	};
 	struct ReqBuf {
 		BYTE		*buf;
@@ -357,48 +358,48 @@ protected:
 		int			dataSize;
 		BYTE		digest[SHA1_SIZE];
 		BYTE		*data;
-		BYTE		path[1]; // ‚³‚ç‚É dstSector‹«ŠEŒã‚Éƒf[ƒ^‚ª‘±‚­
+		BYTE		path[1]; // ã•ã‚‰ã« dstSectorå¢ƒç•Œå¾Œã«ãƒ‡ãƒ¼ã‚¿ãŒç¶šã
 	};
 
-	struct RandomDataBuf {	// ã‘‚«íœ—p
+	struct RandomDataBuf {	// ä¸Šæ›¸ãå‰Šé™¤ç”¨
 		BOOL	is_nsa;
 		int		base_size;
 		int		buf_size;
 		BYTE	*buf[3];
 	};
 
-	class TReqList : public TList {	// ƒŠƒNƒGƒXƒgƒLƒ…[
+	class TReqList : public TList {	// ãƒªã‚¯ã‚¨ã‚¹ãƒˆã‚­ãƒ¥ãƒ¼
 	public:
 		TReqList(void) {}
 		ReqHeader *TopObj(void) { return (ReqHeader *)TList::TopObj(); }
 		ReqHeader *NextObj(ReqHeader *obj) { return (ReqHeader *)TList::NextObj(obj); }
 	};
 
-	// Šî–{î•ñ
-	DriveMng	driveMng;	// Drive î•ñ
-	Info		info;		// ƒIƒvƒVƒ‡ƒ“w’è“™
+	// åŸºæœ¬æƒ…å ±
+	DriveMng	driveMng;	// Drive æƒ…å ±
+	Info		info;		// ã‚ªãƒ—ã‚·ãƒ§ãƒ³æŒ‡å®šç­‰
 	StatHash	hash;
 	PathArray	srcArray;
 	PathArray	dstArray;
 
-	void	*src;			// src ƒpƒXŠi”[—p
-	void	*dst;			// dst ƒpƒXŠi”[—p
-	void	*confirmDst;	// ã‘‚«Šm”F’²¸—p
-	void	*hardLinkDst;	// ƒn[ƒhƒŠƒ“ƒN—p
-	int		srcBaseLen;		// src ƒpƒX‚ÌŒÅ’è•”•ª‚Ì’·‚³
-	int		dstBaseLen;		// dst ƒpƒX‚ÌŒÅ’è•”•ª‚Ì’·‚³
-	int		srcPrefixLen;	// \\?\ or \\?\UNC\ ‚Ì’·‚³
+	void	*src;			// src ãƒ‘ã‚¹æ ¼ç´ç”¨
+	void	*dst;			// dst ãƒ‘ã‚¹æ ¼ç´ç”¨
+	void	*confirmDst;	// ä¸Šæ›¸ãç¢ºèªèª¿æŸ»ç”¨
+	void	*hardLinkDst;	// ãƒãƒ¼ãƒ‰ãƒªãƒ³ã‚¯ç”¨
+	int		srcBaseLen;		// src ãƒ‘ã‚¹ã®å›ºå®šéƒ¨åˆ†ã®é•·ã•
+	int		dstBaseLen;		// dst ãƒ‘ã‚¹ã®å›ºå®šéƒ¨åˆ†ã®é•·ã•
+	int		srcPrefixLen;	// \\?\ or \\?\UNC\ ã®é•·ã•
 	int		dstPrefixLen;
 	BOOL	isExtendDir;
 	BOOL	isMetaSrc;
 	BOOL	isListing;
 	BOOL	isListingOnly;
 	int		maxStatSize;	// max size of FileStat
-	int		nbMinSize;		// struct Info QÆ
+	int		nbMinSize;		// struct Info å‚ç…§
 	BOOL	enableAcl;
 	BOOL	enableStream;
 
-	// ƒZƒNƒ^î•ñ‚È‚Ç
+	// ã‚»ã‚¯ã‚¿æƒ…å ±ãªã©
 	int		srcSectorSize;
 	int		dstSectorSize;
 	int		sectorSize;
@@ -409,7 +410,7 @@ protected:
 	FsType	dstFsType;
 	BYTE	src_root[MAX_PATH];
 
-	TotalTrans	total;		// ƒtƒ@ƒCƒ‹ƒRƒs[“Œvî•ñ
+	TotalTrans	total;		// ãƒ•ã‚¡ã‚¤ãƒ«ã‚³ãƒ”ãƒ¼çµ±è¨ˆæƒ…å ±
 
 	// filter
 	enum		{ REG_FILTER=0x1, DATE_FILTER=0x2, SIZE_FILTER=0x4 };
@@ -418,13 +419,13 @@ protected:
 	enum		{ INC_EXP, EXC_EXP, MAX_KIND_EXP };
 	RegExpEx	regExp[MAX_FTYPE_EXP][MAX_KIND_EXP];
 
-	// ƒoƒbƒtƒ@
-	VBuf	mainBuf;		// Read/Write —p buffer
-//	VBuf	baseBuf;		// mainBuf ˆÈŠO‚Ìebuffer
-	VBuf	fileStatBuf;	// src file stat —p buffer
-	VBuf	dirStatBuf;		// src dir stat —p buffer
-	VBuf	dstStatBuf;		// dst dir/file stat —p buffer
-	VBuf	dstStatIdxBuf;	// dstStatBuf “à entry ‚Ì index sort —p
+	// ãƒãƒƒãƒ•ã‚¡
+	VBuf	mainBuf;		// Read/Write ç”¨ buffer
+//	VBuf	baseBuf;		// mainBuf ä»¥å¤–ã®è¦ªbuffer
+	VBuf	fileStatBuf;	// src file stat ç”¨ buffer
+	VBuf	dirStatBuf;		// src dir stat ç”¨ buffer
+	VBuf	dstStatBuf;		// dst dir/file stat ç”¨ buffer
+	VBuf	dstStatIdxBuf;	// dstStatBuf å†… entry ã® index sort ç”¨
 	VBuf	mkdirQueueBuf;
 	VBuf	dstDirExtBuf;
 	VBuf	srcDigestBuf;
@@ -433,7 +434,7 @@ protected:
 	VBuf	listBuf;
 	VBuf	ntQueryBuf;
 
-	// ƒf[ƒ^“]‘—ƒLƒ…[ŠÖ˜A
+	// ãƒ‡ãƒ¼ã‚¿è»¢é€ã‚­ãƒ¥ãƒ¼é–¢é€£
 	TReqList	readReqList;
 	TReqList	writeReqList;
 	TReqList	rDigestReqList;
@@ -445,7 +446,7 @@ protected:
 	FileStat	**openFiles;
 	int			openFilesCnt;
 
-	// ƒXƒŒƒbƒhŠÖ˜A
+	// ã‚¹ãƒ¬ãƒƒãƒ‰é–¢é€£
 	HANDLE		hReadThread;
 	HANDLE		hWriteThread;
 	HANDLE		hRDigestThread;
@@ -457,13 +458,13 @@ protected:
 	CRITICAL_SECTION errCs;
 	CRITICAL_SECTION listCs;
 
-	// ŠÔî•ñ
+	// æ™‚é–“æƒ…å ±
 	DWORD	startTick;
 	DWORD	endTick;
 	DWORD	suspendTick;
-	volatile DWORD	waitTick;
+	DWORD	waitTick;
 
-	// ƒ‚[ƒhEƒtƒ‰ƒO—Ş
+	// ãƒ¢ãƒ¼ãƒ‰ãƒ»ãƒ•ãƒ©ã‚°é¡
 	BOOL	isAbort;
 	BOOL	isSuspend;
 	BOOL	isSameDrv;
@@ -473,24 +474,24 @@ protected:
 	BOOL	dstRequestResult;
 	enum	RunMode { RUN_NORMAL, RUN_DIGESTREQ } runMode;
 
-	// ƒ_ƒCƒWƒFƒXƒgŠÖ˜A
+	// ãƒ€ã‚¤ã‚¸ã‚§ã‚¹ãƒˆé–¢é€£
 	TDigest		srcDigest;
 	TDigest		dstDigest;
 	BYTE		srcDigestVal[SHA1_SIZE];
 	BYTE		dstDigestVal[SHA1_SIZE];
 
-	DataList	digestList;	// ƒnƒbƒVƒ…/Open‹L˜^
+	DataList	digestList;	// ãƒãƒƒã‚·ãƒ¥/Openè¨˜éŒ²
 	BOOL IsUsingDigestList() {
 		return (info.flags & VERIFY_FILE) && (info.flags & LISTING_ONLY) == 0;
 	}
 	enum		CheckDigestMode { CD_NOWAIT, CD_WAIT, CD_FINISH };
 	DataList	wDigestList;
 
-	// ˆÚ“®ŠÖ˜A
-	DataList		moveList;		// ˆÚ“®
-	DataList::Head	*moveFinPtr;	// ‘‚«‚İI—¹IDˆÊ’u
+	// ç§»å‹•é–¢é€£
+	DataList		moveList;		// ç§»å‹•
+	DataList::Head	*moveFinPtr;	// æ›¸ãè¾¼ã¿çµ‚äº†IDä½ç½®
 
-	TLinkHashTbl	hardLinkList;	// ƒn[ƒhƒŠƒ“ƒN—pƒŠƒXƒg
+	TLinkHashTbl	hardLinkList;	// ãƒãƒ¼ãƒ‰ãƒªãƒ³ã‚¯ç”¨ãƒªã‚¹ãƒˆ
 
 	static unsigned WINAPI ReadThread(void *fastCopyObj);
 	static unsigned WINAPI WriteThread(void *fastCopyObj);

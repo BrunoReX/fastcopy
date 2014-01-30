@@ -1,6 +1,6 @@
 //{{NO_DEPENDENCIES}}
-// Microsoft Developer Studio generated include file.
-// Used by FastCopy.rc
+// Microsoft Visual C++ generated include file.
+// Used by fastcopy.rc
 //
 #define IDS_MKDIR                       1
 #define IDS_RMDIR                       2
@@ -73,6 +73,9 @@
 #define IDS_SETUP_SHEET4                109
 #define IDS_SETUP_SHEET5                110
 #define IDS_SETUP_SHEET6                111
+#define IDS_FACMD_ALWAYS                120
+#define IDS_FACMD_NORMAL                121
+#define IDS_FACMD_ERROR                 122
 #define SETUP_SHEET1                    202
 #define SETUP_SHEET2                    203
 #define SETUP_SHEET3                    204
@@ -90,7 +93,6 @@
 #define IDS_CMD_MOVE                    1086
 #define IDS_CMD_DELETE                  1087
 #define IDS_CMD_OPT                     1088
-#define IDS_CMD_MOVEDIFF                1089
 #define IDS_CMD_MOVEATTR                1089
 #define IDS_BUFSIZE_OPT                 1090
 #define IDS_ERRSTOP_OPT                 1091
@@ -132,8 +134,6 @@
 #define IDS_LOGFILE_OPT                 1135
 #define IDS_NOCONFIRMSTOP_OPT           1136
 #define IDS_VERIFY_OPT                  1137
-#define IDS_SHEXT_NOCONFIRM_OPT         1138
-#define IDS_USERDIROLD_MENU             1138
 #define IDS_USEROLDDIR_MENU             1138
 #define IDS_WIPEDEL_OPT                 1139
 #define IDS_SRCFILE_OPT                 1140
@@ -154,15 +154,19 @@
 #define IDS_FALSE                       1158
 #define IDS_FILELOGNAME                 1159
 #define IDS_FILELOG_SUBDIR              1160
-#define SETTING_LIST                    1160
-#define IDS_FULLSPEED_DISP              1161
-#define IDS_AUTOSLOW_DISP               1162
-#define SETUP_SHEET_BASE                1162
-#define IDS_SUSPEND_DISP                1163
-#define SETUP_LIST                      1163
-#define IDS_RATE_DISP                   1164
-#define STREAMERRLOG_CHECK              1164
-#define ACLERRLOG_CHECK                 1165
+#define IDS_INSTALL_OPT                 1161
+#define IDS_FULLSPEED_DISP              1201
+#define IDS_AUTOSLOW_DISP               1202
+#define IDS_SUSPEND_DISP                1203
+#define IDS_RATE_DISP                   1204
+#define SETUP_LIST                      2263
+#define STREAMERRLOG_CHECK              2264
+#define ACLERRLOG_CHECK                 2265
+#define TASKBAR_CHECK                   2266
+#define SPAN1_RADIO                     2267
+#define SPAN2_RADIO                     2268
+#define SPAN3_RADIO                     2269
+#define CMDERR_COMBO                    2270
 #define MAIN_DIALOG                     2331
 #define INPUT_DIALOG                    2332
 #define SETUP_DIALOG                    2333
@@ -175,7 +179,7 @@
 #define MESSAGE_DIALOG                  2379
 #define FINACTION_DIALOG                2380
 #define USERDIROLD_MENUITEM             2381
-#define PROP_MISC                       2381
+#define PROP_MISC                       2382
 #define SRC_FILE_BUTTON                 3003
 #define DST_FILE_BUTTON                 3004
 #define SRC_COMBO                       3006
@@ -186,10 +190,10 @@
 #define NONBUFMINNTFS_EDIT              3011
 #define IGNORE_CHECK                    3012
 #define INPUT_EDIT                      3013
-#define FILELOG_CHECK                   3013
-#define NONBUFMINFAT_EDIT               3014
-#define STATUS_EDIT                     3015
-#define UTF8LOG_CHECK                   3016
+#define FILELOG_CHECK                   3014
+#define NONBUFMINFAT_EDIT               3015
+#define STATUS_EDIT                     3016
+#define UTF8LOG_CHECK                   3017
 #define SAMEDRV_STATIC                  3019
 #define PATH_EDIT                       3020
 #define MODE_COMBO                      3021
@@ -242,15 +246,15 @@
 #define MOVEATTR_CHECK                  3080
 #define SERIALMOVE_CHECK                3081
 #define JOB_COMBO                       3082
-#define EXTENDFILTER_CHECK              3082
-#define DELDIR_CHECK                    3082
-#define JOBTITLE_STATIC                 3083
-#define JOB_STATIC                      3084
-#define JOBDEL_BUTTON                   3085
-#define SPEED_STATIC                    3086
-#define AUTOSLOW_CHECK                  3087
-#define AUTOSLOW_STATIC                 3088
-#define AUTOSLOWIO_CHECK                3089
+#define EXTENDFILTER_CHECK              3083
+#define DELDIR_CHECK                    3084
+#define JOBTITLE_STATIC                 3085
+#define JOB_STATIC                      3086
+#define JOBDEL_BUTTON                   3087
+#define SPEED_STATIC                    3088
+#define AUTOSLOW_CHECK                  3089
+#define AUTOSLOW_STATIC                 3090
+#define AUTOSLOWIO_CHECK                3091
 #define SPEED_SLIDER                    3103
 #define REPARSE_CHECK                   3104
 #define RUNAS_BUTTON                    3105
@@ -292,6 +296,7 @@
 #define DIRSELECT_BUTTON                3336
 #define MKDIR_BUTTON                    3380
 #define RMDIR_BUTTON                    3381
+#define FACMD_COMBO                     3382
 #define FASTCOPY_ICON                   4000
 #define FASTCOPY2_ICON                  4001
 #define FASTCOPY3_ICON                  4002
@@ -333,9 +338,9 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NO_MFC                     1
 #define _APS_3D_CONTROLS                     1
-#define _APS_NEXT_RESOURCE_VALUE        208
+#define _APS_NEXT_RESOURCE_VALUE        500
 #define _APS_NEXT_COMMAND_VALUE         30030
-#define _APS_NEXT_CONTROL_VALUE         1166
-#define _APS_NEXT_SYMED_VALUE           2382
+#define _APS_NEXT_CONTROL_VALUE         3382
+#define _APS_NEXT_SYMED_VALUE           2383
 #endif
 #endif

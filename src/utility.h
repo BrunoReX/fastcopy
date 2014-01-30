@@ -1,9 +1,9 @@
-/* static char *utility_id = 
-	"@(#)Copyright (C) 2004-2010 H.Shirouzu		utility.h	Ver2.00"; */
+Ôªø/* static char *utility_id = 
+	"@(#)Copyright (C) 2004-2012 H.Shirouzu		utility.h	Ver2.10"; */
 /* ========================================================================
 	Project  Name			: Utility
 	Create					: 2004-09-15(Wed)
-	Update					: 2010-05-09(Sun)
+	Update					: 2012-06-17(Sun)
 	Copyright				: H.Shirouzu
 	Reference				: 
 	======================================================================== */
@@ -12,62 +12,6 @@
 #define UTILITY_H
 
 #include "tlib/tlib.h"
-
-class Condition {
-protected:
-	enum WaitEvent { CLEAR_EVENT=0, DONE_EVENT, WAIT_EVENT };
-	CRITICAL_SECTION	cs;
-	HANDLE				*hEvents;
-	WaitEvent			*waitEvents;
-	int					max_threads;
-	int					waitCnt;
-
-public:
-	Condition(void);
-	~Condition();
-
-	BOOL Initialize(int _max_threads);
-	void UnInitialize(void);
-
-	void Lock(void)		{ ::EnterCriticalSection(&cs); }
-	void UnLock(void)	{ ::LeaveCriticalSection(&cs); }
-
-	// ÉçÉbÉNÇéÊìæÇµÇƒÇ©ÇÁóòópÇ∑ÇÈÇ±Ç∆
-	int  WaitThreads()	{ return waitCnt; }
-	int  IsWait()		{ return waitCnt ? TRUE : FALSE; }
-	void DetachThread() { max_threads--; }
-	int  MaxThreads()   { return max_threads; }
-
-	BOOL Wait(DWORD timeout=INFINITE);
-	void Notify(void);
-};
-
-#define PAGE_SIZE	(4 * 1024)
-
-class VBuf {
-protected:
-	BYTE	*buf;
-	VBuf	*borrowBuf;
-	int		size;
-	int		usedSize;
-	int		maxSize;
-	void	Init();
-
-public:
-	VBuf(int _size=0, int _max_size=0, VBuf *_borrowBuf=NULL);
-	~VBuf();
-	BOOL	AllocBuf(int _size, int _max_size=0, VBuf *_borrowBuf=NULL);
-	BOOL	LockBuf();
-	void	FreeBuf();
-	BOOL	Grow(int grow_size);
-	BYTE	*Buf() { return	buf; }
-	int		Size() { return size; }
-	int		MaxSize() { return maxSize; }
-	int		UsedSize() { return usedSize; }
-	void	SetUsedSize(int _used_size) { usedSize = _used_size; }
-	int		AddUsedSize(int _used_size) { return usedSize += _used_size; }
-	int		RemainSize(void) { return	size - usedSize; }
-};
 
 class Logging {
 protected:
@@ -103,9 +47,9 @@ public:
 	void	SetMode(DWORD _flags) { flags = _flags; }
 	int		RegisterMultiPath(const void *multi_path, const void *separator=SEMICOLON_V);
 	int		GetMultiPath(void *multi_path, int max_len, const void *separator=SEMICLN_SPC_V,
-			const void *escape_char=SEMICOLON_V);
+				const void *escape_char=SEMICOLON_V);
 	int		GetMultiPathLen(const void *separator=SEMICLN_SPC_V,
-			const void *escape_char=SEMICOLON_V);
+				const void *escape_char=SEMICOLON_V);
 
 	PathArray& operator=(const PathArray& init);
 
